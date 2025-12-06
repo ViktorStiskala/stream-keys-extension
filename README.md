@@ -54,19 +54,6 @@ The extension uses `window.addEventListener('keydown', handler, true)` with the 
 
 After exiting fullscreen, browsers require a real user click before routing keyboard events to the page (this is a security feature). The extension works around this by creating an invisible overlay that captures the first click, then removes itself - restoring keyboard functionality without affecting video playback.
 
-## Project Structure
-
-```
-video-controls/
-├── main.js              # Service worker - routes to handler based on URL
-├── manifest.json        # Extension manifest
-├── services/
-│   ├── disney.js        # Disney+ keyboard handler
-│   └── hbomax.js        # HBO Max keyboard handler
-└── logo/
-    └── StreamKeys_*.png # Extension icons
-```
-
 ## Permissions
 
 - `webNavigation` - To detect when pages finish loading
