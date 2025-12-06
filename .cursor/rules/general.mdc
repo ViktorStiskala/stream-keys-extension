@@ -1,0 +1,57 @@
+---
+description: StreamKeys Extension - General Development Notes
+alwaysApply: true
+---
+
+# StreamKeys Extension Development Notes
+
+## Project Structure
+
+```
+video-controls/
+├── main.js              # Service worker - routes to appropriate handler based on URL
+├── manifest.json        # Extension manifest with host permissions
+└── services/
+    ├── disney.js        # Disney+ keyboard handler
+    └── hbomax.js        # HBO Max keyboard handler
+```
+
+## Adding New Streaming Services
+
+1. Create new handler in `services/` folder (e.g., `netflix.js`)
+2. Add URL matching in `main.js` router
+3. Add host permissions in `manifest.json`
+4. Create service-specific Cursor rules file
+
+## Keyboard Event Capture Strategy
+
+1. Use `window.addEventListener('keydown', handler, true)` - the capture phase (`true`) intercepts events before they reach other handlers
+2. `window` is preferred over `document` as it's higher in the capture chain
+3. Also attach listener to `document.fullscreenElement` when in fullscreen mode
+4. Attach listener directly to the player element as additional fallback
+
+## Browser Security: Fullscreen Exit Focus Issue
+
+**Problem:** After exiting fullscreen, browsers require "user activation" (a real click) before routing keyboard events to the page. This is a security feature that cannot be bypassed with JavaScript - `element.focus()`, synthetic events, and other tricks do not satisfy this requirement.
+
+**Solution:** Create an invisible full-page overlay after fullscreen exit that captures the user's first click:
+- Overlay covers entire viewport with `z-index: 2147483647`
+- Completely transparent so user doesn't notice
+- Captures click, removes itself, then focuses the player
+- Click doesn't propagate to video (avoids unwanted pause/play)
+
+## Script Injection
+
+Inject into MAIN world to share context with the streaming service's scripts:
+```javascript
+chrome.scripting.executeScript({
+  target: { tabId, allFrames: true },
+  files: ['services/handler.js'],
+  world: 'MAIN'
+});
+```
+
+## Logging Convention
+
+- `console.info('[StreamKeys] ...')` - Extension loaded messages
+- `console.warn('[StreamKeys] ...')` - Button not found or other recoverable issues

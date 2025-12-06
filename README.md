@@ -1,20 +1,25 @@
-# Disney+ UX Spacebar Fix
+# Stream Keys
 
-A Chrome extension that improves keyboard controls on Disney+ by fixing the spacebar behavior and adding reliable keyboard shortcuts.
+A Chrome extension that improves keyboard controls on streaming services by fixing spacebar behavior and adding reliable keyboard shortcuts.
+
+## Supported Services
+
+- **Disney+** - Shadow DOM player controls
+- **HBO Max** - Standard DOM player controls
 
 ## Features
 
 - **Spacebar Play/Pause** - Press `Space` to toggle play/pause anywhere on the page, regardless of which element has focus
 - **Fullscreen Toggle** - Press `F` to toggle fullscreen mode
-- **No Focus Outline** - Removes the distracting blue focus outline from the video player
+- **No Focus Outline** - Removes the distracting blue focus outline from the video player (Disney+)
 - **Works in Fullscreen** - Keyboard shortcuts work reliably in both normal and fullscreen modes
 
 ## The Problem This Solves
 
-Disney+'s default spacebar behavior is inconsistent:
+Default keyboard behavior on streaming services is often inconsistent:
 - Pressing spacebar when a control button is focused activates that button instead of play/pause
 - After exiting fullscreen, keyboard controls stop working until you click on the video
-- The video player shows an ugly blue outline when focused
+- The video player may show an ugly focus outline when focused
 
 This extension intercepts keyboard events at the highest level and redirects them to the correct player controls.
 
@@ -27,35 +32,47 @@ This extension intercepts keyboard events at the highest level and redirects the
 3. Enable "Developer mode" in the top right
 4. Click "Load unpacked" and select the extension folder
 
+### Building
+
+```bash
+make build    # Creates build/stream-keys.zip
+make clean    # Removes build directory
+```
+
 ## How It Works
 
 ### Keyboard Event Capture
 
-The extension uses `window.addEventListener('keydown', handler, true)` with the capture phase to intercept keyboard events before Disney+'s own handlers can process them.
+The extension uses `window.addEventListener('keydown', handler, true)` with the capture phase to intercept keyboard events before the streaming service's own handlers can process them.
 
-### Shadow DOM Access
+### Service-Specific Handlers
 
-Disney+ player controls are inside Shadow DOM elements. The extension accesses them via:
-```javascript
-document.body.querySelector(selector)?.shadowRoot?.querySelector("info-tooltip button")
-```
+- **Disney+**: Player controls are inside Shadow DOM elements, accessed via `element.shadowRoot.querySelector()`
+- **HBO Max**: Uses standard DOM with `data-testid` attributes and class-based fallback selectors
 
 ### Fullscreen Focus Workaround
 
 After exiting fullscreen, browsers require a real user click before routing keyboard events to the page (this is a security feature). The extension works around this by creating an invisible overlay that captures the first click, then removes itself - restoring keyboard functionality without affecting video playback.
 
+## Project Structure
+
+```
+video-controls/
+├── main.js              # Service worker - routes to handler based on URL
+├── manifest.json        # Extension manifest
+├── services/
+│   ├── disney.js        # Disney+ keyboard handler
+│   └── hbomax.js        # HBO Max keyboard handler
+└── logo/
+    └── StreamKeys_*.png # Extension icons
+```
+
 ## Permissions
 
-- `webNavigation` - To detect when Disney+ pages finish loading
-- `scripting` - To inject the keyboard handler script
-- `host_permissions` for `*.disneyplus.com` - To run on Disney+ domains
-
-## Version History
-
-- **1.1.2** - Current version with fullscreen focus fix and F key support
-- Earlier versions focused on spacebar play/pause fix
+- `webNavigation` - To detect when pages finish loading
+- `scripting` - To inject the keyboard handler scripts
+- `host_permissions` - To run on supported streaming service domains
 
 ## License
 
 MIT
-

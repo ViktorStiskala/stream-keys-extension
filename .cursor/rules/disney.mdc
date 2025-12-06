@@ -1,9 +1,10 @@
 ---
-description: Disney+ Chrome Extension - Keyboard Event Handling
-alwaysApply: true
+description: Disney+ Handler - Shadow DOM and Player Controls
+globs:
+  - "**/disney.js"
 ---
 
-# Disney+ Extension Development Notes
+# Disney+ Handler Notes
 
 ## Shadow DOM Button Access
 
@@ -14,36 +15,14 @@ document.body.querySelector(selector)?.shadowRoot?.querySelector("info-tooltip b
 
 Available selectors: `toggle-play-pause`, `toggle-fullscreen`, `toggle-mute-button`, `quick-rewind`, `quick-fast-forward`, `restart-playback`.
 
-## Keyboard Event Capture Strategy
+## Player Element
 
-1. Use `window.addEventListener('keydown', handler, true)` - the capture phase (`true`) intercepts events before they reach other handlers
-2. `window` is preferred over `document` as it's higher in the capture chain
-3. Also attach listener to `document.fullscreenElement` when in fullscreen mode
-4. Attach listener directly to `disney-web-player` element as additional fallback
-
-## Browser Security: Fullscreen Exit Focus Issue
-
-**Problem:** After exiting fullscreen, browsers require "user activation" (a real click) before routing keyboard events to the page. This is a security feature that cannot be bypassed with JavaScript - `element.focus()`, synthetic events, and other tricks do not satisfy this requirement.
-
-**Solution:** Create an invisible full-page overlay after fullscreen exit that captures the user's first click:
-- Overlay covers entire viewport with `z-index: 2147483647`
-- Completely transparent so user doesn't notice
-- Captures click, removes itself, then focuses the player
-- Click doesn't propagate to video (avoids unwanted pause/play)
-
-## Script Injection
-
-Inject into MAIN world to share context with Disney+'s scripts:
-```javascript
-chrome.scripting.executeScript({
-  target: { tabId, allFrames: true },
-  function: main,
-  world: 'MAIN'
-});
-```
+- Main player element: `disney-web-player`
+- Make player focusable with `tabindex="-1"`
+- Remove outline from both `disney-web-player` and `video` elements after focusing
 
 ## Focus Management
 
-- Make player focusable with `tabindex="-1"`
-- Remove outline from both `disney-web-player` and `video` elements after focusing
+- Focus target: `disney-web-player` element
 - Use `document.hasFocus()` check before calling `focus()` to avoid focusing when browser window is inactive
+- Attach keydown listener directly to player element as fallback
