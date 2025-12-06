@@ -2,7 +2,7 @@
    "background": {
       "service_worker": "main.js"
    },
-   "description": "Enhanced Keyboard Controls for players on streaming services (currently supports Disney+ and HBO Max). Spacebar toggles play/pause, F toggles fullscreen.",
+   "description": "Enhanced Keyboard Controls for players on streaming services. Currently supports Disney+ and HBO Max.",
    "host_permissions": [ "https://*disneyplus.com/*", "https://play.hbomax.com/*" ],
    "icons": {
       "128": "logo/StreamKeys_128.png",
@@ -11,7 +11,7 @@
       "48": "logo/StreamKeys_48.png"
    },
    "manifest_version": 3,
-   "name": "Stream Keys - Keyboard Controls",
+   "name": "Stream Keys - Video Keyboard Controls",
    "permissions": [ "webNavigation", "scripting" ],
    "version": "1.0.0"
 }

@@ -61,3 +61,7 @@ chrome.scripting.executeScript({
 ## Build System
 
 The `Makefile` contains hardcoded file paths in `PACKAGE_FILES`. When changing project structure or adding new required files, update these paths manually.
+
+## Manifest Constraints
+
+- The `description` field in `manifest.json` has a maximum length of 132 characters.
