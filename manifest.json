@@ -1,0 +1,19 @@
+{
+   "background": {
+      "service_worker": "main.js"
+   },
+   "description": "Improves Dinsey+ spacebar to only toggle between play and pause for video. It also removes blue video outline.",
+   "host_permissions": [ "https://*.disneyplus.com/*" ],
+   "icons": {
+      "128": "logo/disneyPlusUX_128.png",
+      "16": "logo/disneyPlusUX_16.png",
+      "32": "logo/disneyPlusUX_32.png",
+      "48": "logo/disneyPlusUX_48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo22xHx2MSKp/a5aizVW8DDjjV+yYXSmBkelz1/LFJ+h04VDwjLbwqtD2TFxzkmO3tkaB0tTOthrksWOqbUy9TsEPNp7XxKezkj4sugr6ctnzyIycTkylqhxilQoWrfP38W8Y78169U352kTms3YxSonzekqvz53pXJQnse1Nb4rInYPy2LO3U3eqYdocmUR3lZELQ8MxFEmEesyqecagVtBpgVh+MIf1g7GBWXa10pjtGDiZksi42Xpnl7AiIdqpn5wUIZcpSrkZd5gTNb5e8kXPLAHpQFSqjaVY4cXqZ8pdzHAmRlRmV2dbWPjvCqBK4qnIixB4e7m7F8IbmWju9QIDAQAB",
+   "manifest_version": 3,
+   "name": "DisneyUX+ spacebar fix",
+   "permissions": [ "webNavigation", "scripting" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.1.2"
+}
