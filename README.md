@@ -2,6 +2,8 @@
 
 A Chrome extension that improves keyboard controls on streaming services by fixing spacebar behavior, adding reliable keyboard shortcuts, and providing quick subtitle toggling.
 
+![hero_banner](./assets/hero_banner.png)
+
 ## Supported Services
 
 - **Disney+** - Shadow DOM player controls
