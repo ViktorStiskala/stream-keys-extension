@@ -8,10 +8,17 @@ A Chrome extension that improves keyboard controls on streaming services by fixi
 
 ## Supported Services
 
-- **Disney+** - Shadow DOM player controls
-- **HBO Max** - Standard DOM player controls
+- **Disney+**
+  - Fixes broken `Space` play/pause behavior, adds `C` for subtitles and `F` for fullscreen.
+  - Removes the distracting blue focus outline and enables Left/Right arrow shortcuts for quick rewind/fast-forward.
+
+- **HBO Max**
+  - Fixes unreliable `Space` behavior and adds `C` for subtitles and `F` for fullscreen.
+  - The HBO Max player already supports Left/Right arrow keys for skipping.
 
 ## Features
+
+> The Extension mimics basic keyboard shortcuts known from YouTube.
 
 - **Spacebar Play/Pause** - Press `Space` to toggle play/pause anywhere on the page, regardless of which element has focus
 - **Fullscreen Toggle** - Press `F` to toggle fullscreen mode
