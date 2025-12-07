@@ -1,155 +1,87 @@
-function disneyMain() {
-  console.info('[StreamKeys] Disney+ extension loaded');
+// Disney+ handler - service-specific configuration for StreamKeys
 
-  const getShadowRootButton = (body, selector) => {
-    return body.querySelector(selector)?.shadowRoot?.querySelector("info-tooltip button");
-  }
-
-  // Global key handler - captures keys regardless of focus
-  const handleGlobalKeys = (e) => {
-    // Skip if user is typing in an input/textarea
-    const activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
-      return;
-    }
-
-    // Map keys to their target buttons
-    const keyMap = {
-      'Space': 'toggle-play-pause',
-      'KeyF': 'toggle-fullscreen',
-    };
-
-    const targetSelector = keyMap[e.code];
-    if (!targetSelector) {
-      return;
-    }
-
-    const button = getShadowRootButton(document.body, targetSelector);
-    if (!button) {
-      const buttonName = e.code === 'Space' ? 'play/pause' : 'fullscreen';
-      console.warn(`[StreamKeys] ${buttonName} button not found`);
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-    button.click();
+(function() {
+  const getShadowRootButton = (selector) => {
+    return document.body.querySelector(selector)?.shadowRoot?.querySelector("info-tooltip button");
   };
-
-  // Use capture phase to intercept before any other handlers
-  window.addEventListener('keydown', handleGlobalKeys, true);
 
   // Remove outline from player and video
   const removeOutline = () => {
     const player = document.body.querySelector("disney-web-player");
     const video = player?.querySelector("video");
-    
     player?.style?.setProperty("outline", "0", "important");
     video?.style?.setProperty("outline", "0", "important");
   };
 
-  // Helper to focus player
-  const focusPlayer = () => {
-    const player = document.body.querySelector("disney-web-player");
-    if (player && document.hasFocus()) {
+  window.StreamKeys.createHandler({
+    name: 'Disney+',
+
+    getPlayer: () => document.body.querySelector("disney-web-player"),
+
+    getButton: (keyCode) => {
+      const keyMap = {
+        'Space': 'toggle-play-pause',
+        'KeyF': 'toggle-fullscreen',
+        'ArrowLeft': 'quick-rewind',
+        'ArrowRight': 'quick-fast-forward',
+      };
+      const selector = keyMap[keyCode];
+      if (!selector) return null;
+
+      const button = getShadowRootButton(selector);
+      if (!button) {
+        const buttonName = keyCode === 'Space' ? 'play/pause' : 'fullscreen';
+        console.warn(`[StreamKeys] ${buttonName} button not found`);
+      }
+      return button;
+    },
+
+    setupPlayerFocus: (player) => {
       player.setAttribute('tabindex', '-1');
       player.focus();
       removeOutline();
-    }
-  };
+    },
 
-  // Create invisible overlay to capture click for user activation
-  const createClickOverlay = () => {
-    // Remove any existing overlay
-    const existing = document.getElementById('keyboard-activation-overlay');
-    if (existing) existing.remove();
+    onPlayerSetup: (player) => {
+      removeOutline();
+      player.setAttribute('tabindex', '-1');
+    },
 
-    const overlay = document.createElement('div');
-    overlay.id = 'keyboard-activation-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 2147483647;
-      background: transparent;
-      cursor: default;
-    `;
-    
-    // Remove overlay on click and focus player
-    overlay.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      overlay.remove();
-      focusPlayer();
-    }, { once: true });
-    
-    document.body.appendChild(overlay);
-  };
+    subtitles: {
+      getAvailable: () => {
+        const labels = document.querySelectorAll('#subtitleTrackPicker label.picker-item');
+        const results = [];
+        labels.forEach(label => {
+          // Skip the "off" option
+          if (label.getAttribute('for') === 'subtitleTrackPicker-off') return;
+          results.push({
+            label: label.textContent.trim(),
+            element: label,
+            inputId: label.getAttribute('for')
+          });
+        });
+        return results;
+      },
 
-  // Track fullscreen state for focus restoration
-  let currentFullscreenElement = null;
-  let playerKeyListenerAdded = false;
-  
-  document.addEventListener('fullscreenchange', () => {
-    // Remove listener from previous fullscreen element
-    if (currentFullscreenElement) {
-      currentFullscreenElement.removeEventListener('keydown', handleGlobalKeys, true);
-      currentFullscreenElement = null;
-    }
+      getCurrentState: () => {
+        const offRadio = document.querySelector('#subtitleTrackPicker-off');
+        // Subtitles are ON if the "off" radio is NOT checked
+        return offRadio && !offRadio.checked;
+      },
 
-    if (document.fullscreenElement) {
-      // Entering fullscreen - add listener to fullscreen element
-      currentFullscreenElement = document.fullscreenElement;
-      currentFullscreenElement.addEventListener('keydown', handleGlobalKeys, true);
-      setTimeout(focusPlayer, 100);
-    } else {
-      // Exiting fullscreen - show invisible overlay to capture click for user activation
-      setTimeout(() => {
-        createClickOverlay();
-        focusPlayer();
-        console.info('[StreamKeys] Fullscreen exit: Click to focus overlay added');
-      }, 100);
+      turnOff: () => {
+        const offRadio = document.querySelector('#subtitleTrackPicker-off');
+        if (offRadio) {
+          offRadio.click();
+        }
+      },
+
+      selectLanguage: (item) => {
+        const input = document.querySelector(`#${item.inputId}`);
+        if (input) {
+          input.click();
+        }
+      }
     }
   });
-
-  // Setup player for keyboard control
-  const setupPlayer = () => {
-    const player = document.body.querySelector("disney-web-player");
-    
-    if (!player) return;
-    
-    removeOutline();
-    player.setAttribute('tabindex', '-1');
-    
-    // Add keydown listener directly to player
-    if (!playerKeyListenerAdded) {
-      player.addEventListener('keydown', handleGlobalKeys, true);
-      playerKeyListenerAdded = true;
-    }
-  };
-  
-  // Throttled mousemove handler to restore focus
-  let lastMouseMoveTime = 0;
-  const handleMouseMove = () => {
-    const now = Date.now();
-    if (now - lastMouseMoveTime < 500) return;
-    lastMouseMoveTime = now;
-    focusPlayer();
-  };
-  
-  // Setup player periodically
-  setInterval(() => {
-    setupPlayer();
-    
-    const player = document.body.querySelector("disney-web-player");
-    if (player && !player._mouseListenerAdded) {
-      player.addEventListener('mousemove', handleMouseMove);
-      player._mouseListenerAdded = true;
-    }
-  }, 1000);
-}
-
-disneyMain();
-
+})();

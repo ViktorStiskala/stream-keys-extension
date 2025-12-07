@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream Keys Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Stream Keys Settings</h1>
+    
+    <section class="setting-section">
+      <h2>Subtitle Language Preference</h2>
+      <p class="description">
+        Languages are sorted by priority – the first language in the list has the highest priority.
+        Matching is <strong>case insensitive</strong>.
+      </p>
+      <p class="note">
+        <strong>Note:</strong> The language name must match exactly what is displayed in the streaming service's subtitle menu.
+      </p>
+      
+      <div class="add-language">
+        <input type="text" id="language-input" placeholder="Enter language name..." autocomplete="off">
+        <button type="button" id="add-button">Add</button>
+      </div>
+      
+      <ul id="language-list" class="language-list">
+        <!-- Language items will be rendered here by JavaScript -->
+      </ul>
+      
+      <div class="section-footer">
+        <button type="button" id="restore-defaults-button" class="restore-defaults-button">Restore defaults</button>
+      </div>
+    </section>
+  </div>
+  
+  <script src="settings.js"></script>
+</body>
+</html>
+

@@ -3,7 +3,7 @@
       "service_worker": "main.js"
    },
    "description": "Enhanced Keyboard Controls for players on streaming services. Currently supports Disney+ and HBO Max.",
-   "host_permissions": [ "https://*disneyplus.com/*", "https://play.hbomax.com/*" ],
+   "host_permissions": [ "https://*.disneyplus.com/*", "https://*.hbomax.com/*" ],
    "icons": {
       "128": "logo/StreamKeys_128.png",
       "16": "logo/StreamKeys_16.png",
@@ -12,6 +12,7 @@
    },
    "manifest_version": 3,
    "name": "Stream Keys - Video Keyboard Controls",
-   "permissions": [ "webNavigation", "scripting" ],
+   "options_page": "settings/settings.html",
+   "permissions": [ "webNavigation", "scripting", "storage" ],
    "version": "1.0.0"
 }

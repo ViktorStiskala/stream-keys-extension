@@ -12,18 +12,52 @@ stream-keys/
 ├── main.js              # Service worker - routes to appropriate handler based on URL
 ├── manifest.json        # Extension manifest with host permissions
 ├── Makefile             # Build script with hardcoded file paths
-└── handlers/
-    ├── disney.js        # Disney+ keyboard handler
-    └── hbomax.js        # HBO Max keyboard handler
+├── handlers/
+│   ├── base.js          # Shared base handler with common functionality
+│   ├── disney.js        # Disney+ service configuration
+│   └── hbomax.js        # HBO Max service configuration
+└── settings/
+    ├── settings.html    # Options page UI
+    ├── settings.js      # Settings page logic (storage, drag-drop)
+    └── settings.css     # Settings page styles
 ```
 
 ## Adding New Streaming Services
 
 1. Create new handler in `handlers/` folder (e.g., `netflix.js`)
-2. Add URL matching in `main.js` router
-3. Add host permissions in `manifest.json`
-4. Add handler file to `Makefile` PACKAGE_FILES list
-5. Create service-specific Cursor rules file
+2. Use `window.StreamKeys.createHandler(config)` with service-specific config
+3. Add URL matching in `main.js` router
+4. Add host permissions in `manifest.json`
+5. Add handler file to `Makefile` PACKAGE_FILES list
+6. Create service-specific Cursor rules file
+
+## Base Handler Configuration
+
+Service handlers provide a config object to `createHandler()`:
+
+```javascript
+window.StreamKeys.createHandler({
+  name: 'Service Name',
+  getPlayer: () => { /* return player element */ },
+  getButton: (keyCode) => { /* return button for key */ },
+  setupPlayerFocus: (player) => { /* optional: custom focus logic */ },
+  onPlayerSetup: (player) => { /* optional: called on player setup */ },
+  getOverlayContainer: () => { /* optional: container for click overlay */ },
+  subtitles: {
+    getAvailable: () => { /* return [{label, element, ...}] */ },
+    getCurrentState: () => { /* return true if subtitles on */ },
+    turnOff: () => { /* click off option */ },
+    selectLanguage: (item) => { /* click language option */ }
+  }
+});
+```
+
+## Settings & Storage
+
+- Settings stored in `chrome.storage.sync` under key `subtitleLanguages`
+- Default languages: `['English', 'English [CC]', 'English CC']`
+- Settings injected as `window.__streamKeysSettings` before handlers load
+- Access in handlers via `window.__streamKeysSettings.subtitleLanguages`
 
 ## Keyboard Event Capture Strategy
 
@@ -44,14 +78,12 @@ stream-keys/
 
 ## Script Injection
 
-Inject into MAIN world to share context with the streaming service's scripts:
-```javascript
-chrome.scripting.executeScript({
-  target: { tabId, allFrames: true },
-  files: ['handlers/handler.js'],
-  world: 'MAIN'
-});
-```
+The background script injects in this order:
+1. Settings as global variable (`window.__streamKeysSettings`)
+2. Base handler (`handlers/base.js`)
+3. Service-specific handler
+
+All injected into MAIN world to share context with the streaming service's scripts.
 
 ## Logging Convention
 

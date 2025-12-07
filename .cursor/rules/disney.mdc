@@ -26,3 +26,16 @@ Available selectors: `toggle-play-pause`, `toggle-fullscreen`, `toggle-mute-butt
 - Focus target: `disney-web-player` element
 - Use `document.hasFocus()` check before calling `focus()` to avoid focusing when browser window is inactive
 - Attach keydown listener directly to player element as fallback
+
+## Subtitle Selectors
+
+Disney+ subtitle menu uses radio inputs with labels:
+
+- **Subtitle picker container**: `#subtitleTrackPicker`
+- **Off option**: `input#subtitleTrackPicker-off` (locale-dependent label, e.g., "Vypnuto")
+- **Language labels**: `#subtitleTrackPicker label.picker-item`
+- **Get input ID from label**: `label.getAttribute('for')` → `#subtitleTrackPicker-{id}`
+
+To check if subtitles are on: `!document.querySelector('#subtitleTrackPicker-off').checked`
+
+To select a language: Click the corresponding radio input element.

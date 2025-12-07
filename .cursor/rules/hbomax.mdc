@@ -45,3 +45,16 @@ When creating the click overlay after fullscreen exit:
 - Append to `#app-root` instead of `document.body` to be above HBO Max's layer structure
 - Use `!important` on all CSS properties to override HBO Max styles
 - Add `pointer-events: auto !important` to ensure clicks are captured
+
+## Subtitle Selectors
+
+HBO Max subtitle menu uses buttons with aria attributes:
+
+- **Subtitle buttons**: `button[data-testid="player-ux-text-track-button"]`
+- **Off option**: First button in the list (has `aria-label="Off"`)
+- **Language labels**: `aria-label` attribute or `p.TrackLabel` inside button
+- **Check if selected**: `aria-checked="true"` attribute
+
+To check if subtitles are on: First button's `aria-checked !== "true"`
+
+To select a language: Click the corresponding button element.

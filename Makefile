@@ -8,8 +8,12 @@ PACKAGE_NAME = stream-keys.zip
 PACKAGE_FILES = \
 	main.js \
 	manifest.json \
+	handlers/base.js \
 	handlers/disney.js \
 	handlers/hbomax.js \
+	settings/settings.html \
+	settings/settings.js \
+	settings/settings.css \
 	logo/StreamKeys_16.png \
 	logo/StreamKeys_32.png \
 	logo/StreamKeys_48.png \
