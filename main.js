@@ -1,14 +1,19 @@
 // Service worker router - injects appropriate script based on URL
 
 const STORAGE_KEY = 'subtitleLanguages';
+const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
 const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
+const DEFAULT_POSITION_HISTORY = true;
 
 // Inject settings as global variable, then base handler, then service handler
 const injectHandler = async (tabId, handlerFile) => {
   // Read settings from storage
-  const result = await chrome.storage.sync.get(STORAGE_KEY);
+  const result = await chrome.storage.sync.get([STORAGE_KEY, POSITION_HISTORY_KEY]);
   const settings = {
-    subtitleLanguages: result[STORAGE_KEY] || DEFAULT_LANGUAGES
+    subtitleLanguages: result[STORAGE_KEY] || DEFAULT_LANGUAGES,
+    positionHistoryEnabled: result[POSITION_HISTORY_KEY] !== undefined 
+      ? result[POSITION_HISTORY_KEY] 
+      : DEFAULT_POSITION_HISTORY
   };
 
   // Inject settings as global variable

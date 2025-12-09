@@ -1,7 +1,9 @@
-// Settings page JavaScript - manages subtitle language preferences
+// Settings page JavaScript - manages subtitle language preferences and position history
 
 const STORAGE_KEY = 'subtitleLanguages';
+const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
 const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
+const DEFAULT_POSITION_HISTORY = true;
 
 let languages = [];
 
@@ -10,17 +12,30 @@ const languageInput = document.getElementById('language-input');
 const addButton = document.getElementById('add-button');
 const languageList = document.getElementById('language-list');
 const restoreDefaultsButton = document.getElementById('restore-defaults-button');
+const positionHistoryToggle = document.getElementById('position-history-toggle');
 
 // Load preferences from storage
 async function loadPreferences() {
-  const result = await chrome.storage.sync.get(STORAGE_KEY);
+  const result = await chrome.storage.sync.get([STORAGE_KEY, POSITION_HISTORY_KEY]);
   languages = result[STORAGE_KEY] || [...DEFAULT_LANGUAGES];
+  
+  // Load position history setting (default: true)
+  const positionHistoryEnabled = result[POSITION_HISTORY_KEY] !== undefined 
+    ? result[POSITION_HISTORY_KEY] 
+    : DEFAULT_POSITION_HISTORY;
+  positionHistoryToggle.checked = positionHistoryEnabled;
+  
   renderList();
 }
 
 // Save preferences to storage
 async function savePreferences() {
   await chrome.storage.sync.set({ [STORAGE_KEY]: languages });
+}
+
+// Save position history setting
+async function savePositionHistorySetting() {
+  await chrome.storage.sync.set({ [POSITION_HISTORY_KEY]: positionHistoryToggle.checked });
 }
 
 // Render the language list
@@ -161,6 +176,7 @@ languageInput.addEventListener('keydown', (e) => {
     addLanguage();
   }
 });
+positionHistoryToggle.addEventListener('change', savePositionHistorySetting);
 
 // Initialize
 loadPreferences();
