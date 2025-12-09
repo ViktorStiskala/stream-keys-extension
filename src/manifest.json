@@ -17,7 +17,7 @@
   "options_page": "src/settings/settings.html",
   "web_accessible_resources": [
     {
-      "resources": ["src/handlers/*.js"],
+      "resources": ["src/services/*.js"],
       "matches": ["https://*.disneyplus.com/*", "https://*.hbomax.com/*"]
     }
   ]

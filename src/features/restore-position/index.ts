@@ -18,6 +18,10 @@ import {
 
 export interface RestorePositionConfig {
   getPlayer: () => HTMLElement | null;
+  /** Custom video element selector for services with multiple video elements */
+  getVideo?: () => HTMLVideoElement | null;
+  /** Custom playback time getter for services where video.currentTime is unreliable */
+  getPlaybackTime?: () => number | null;
 }
 
 export interface RestorePositionAPI {
@@ -47,13 +51,13 @@ export function initRestorePosition(config: RestorePositionConfig): RestorePosit
   let videoCleanup: CleanupFn | null = null;
   let earlySetupInterval: ReturnType<typeof setInterval> | null = null;
 
-  const getVideoElement = () => getVideo(config.getPlayer);
+  const getVideoElement = () => getVideo(config.getPlayer, config.getVideo);
 
   // Setup video listeners
   const setupVideoListeners = () => {
     const video = getVideoElement();
     if (video && !video._streamKeysSeekListenerAdded) {
-      videoCleanup = setupVideoTracking(video, state, getVideoElement);
+      videoCleanup = setupVideoTracking(video, state, getVideoElement, config.getPlaybackTime);
     }
   };
 
@@ -86,7 +90,7 @@ export function initRestorePosition(config: RestorePositionConfig): RestorePosit
   return {
     openDialog: () => {
       if (isPositionHistoryEnabled()) {
-        createRestoreDialog(state, getVideoElement);
+        createRestoreDialog(state, getVideoElement, config.getPlaybackTime);
       }
     },
     closeDialog: closeRestoreDialog,
@@ -98,7 +102,7 @@ export function initRestorePosition(config: RestorePositionConfig): RestorePosit
       state.isKeyboardOrButtonSeek = value;
     },
     handleDialogKeys: (e) => {
-      return handleRestoreDialogKeys(e, state, getVideoElement);
+      return handleRestoreDialogKeys(e, state, getVideoElement, config.getPlaybackTime);
     },
     getState: () => state,
     cleanup: () => {

@@ -51,7 +51,7 @@ export default defineConfig({
   plugins: [
     webExtension({
       manifest: 'src/manifest.json',
-      additionalInputs: ['src/handlers/disney.ts', 'src/handlers/hbomax.ts'],
+      additionalInputs: ['src/services/disney.ts', 'src/services/hbomax.ts'],
       disableAutoLaunch: true,
     }),
     copyLogos(),

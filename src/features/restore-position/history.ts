@@ -2,21 +2,7 @@
 
 import type { PositionEntry, StreamKeysVideoElement } from '@/types';
 import { isPositionHistoryEnabled } from '@/core/settings';
-import { formatTime, getDisneyPlaybackTime } from '@/core/video';
-
-/**
- * Get the actual playback time, accounting for streaming services like Disney+
- * that use MediaSource where video.currentTime doesn't reflect actual position.
- */
-function getActualPlaybackTime(video: StreamKeysVideoElement): number {
-  // For Disney+, try to get the actual time from their progress bar
-  const disneyTime = getDisneyPlaybackTime();
-  if (disneyTime !== null) {
-    return disneyTime;
-  }
-  // Fallback to standard video currentTime
-  return video.currentTime;
-}
+import { formatTime } from '@/core/video';
 
 // Constants
 export const SEEK_MAX_HISTORY = 3;
@@ -143,7 +129,8 @@ export function getRestorePositions(state: PositionHistoryState): RestorePositio
 export function setupVideoTracking(
   video: StreamKeysVideoElement,
   state: PositionHistoryState,
-  getVideoElement: () => StreamKeysVideoElement | null
+  getVideoElement: () => StreamKeysVideoElement | null,
+  getPlaybackTime?: () => number | null
 ): () => void {
   if (video._streamKeysSeekListenerAdded) {
     return () => {};
@@ -151,6 +138,21 @@ export function setupVideoTracking(
 
   video._streamKeysPlaybackStarted = false;
   video._streamKeysReadyForTracking = false;
+
+  /**
+   * Get the actual playback time.
+   * Uses custom getPlaybackTime if provided (for services where video.currentTime is unreliable),
+   * otherwise falls back to video.currentTime.
+   */
+  const getActualPlaybackTime = (v: StreamKeysVideoElement): number => {
+    if (getPlaybackTime) {
+      const customTime = getPlaybackTime();
+      if (customTime !== null) {
+        return customTime;
+      }
+    }
+    return v.currentTime;
+  };
 
   // Handle seeking events
   const handleSeeking = () => {

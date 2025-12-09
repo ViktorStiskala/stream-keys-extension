@@ -1,6 +1,6 @@
 // Disney+ handler - service-specific configuration
 
-import { createHandler } from './factory';
+import { createHandler } from '@/handlers/factory';
 import type { SubtitleItem } from '@/types';
 
 // Guard attribute - uses HTML element attribute for atomic check-and-set
@@ -46,6 +46,71 @@ const keyMap: Record<string, string> = {
 };
 
 /**
+ * Get Disney+ video element (the one with hive-video class)
+ * Disney+ has two video elements - one hidden, one active
+ */
+function getDisneyVideo(): HTMLVideoElement | null {
+  const player = document.body.querySelector('disney-web-player');
+  if (!player) return null;
+  return player.querySelector<HTMLVideoElement>('video.hive-video');
+}
+
+// Cache for Disney progress bar element
+let disneyProgressBarCache: { element: Element | null; lastCheck: number } | null = null;
+const DISNEY_CACHE_TTL = 5000; // Re-check every 5 seconds
+let disneyTimeLoggedOnce = false;
+
+/**
+ * Get Disney+ actual playback time from progress bar.
+ * Disney+ uses MediaSource Extensions where video.currentTime is buffer-relative,
+ * not actual content position. The real time is in the progress bar's aria-valuenow.
+ */
+function getDisneyPlaybackTime(): number | null {
+  const now = Date.now();
+
+  // Helper to get time from progress bar thumb
+  const getTimeFromThumb = (thumb: Element | null): number | null => {
+    if (!thumb) return null;
+    const valueNow = thumb.getAttribute('aria-valuenow');
+    if (valueNow) {
+      const seconds = parseInt(valueNow, 10);
+      if (!isNaN(seconds) && seconds >= 0) {
+        return seconds;
+      }
+    }
+    return null;
+  };
+
+  // Try to use cached element first
+  if (disneyProgressBarCache && now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL) {
+    const time = getTimeFromThumb(disneyProgressBarCache.element);
+    if (time !== null) {
+      return time;
+    }
+  }
+
+  // Find progress-bar element and access its shadow DOM
+  const progressBar = document.querySelector('progress-bar');
+  if (progressBar?.shadowRoot) {
+    const thumb = progressBar.shadowRoot.querySelector('.progress-bar__thumb');
+    const time = getTimeFromThumb(thumb);
+    if (time !== null) {
+      // Cache the thumb element
+      disneyProgressBarCache = { element: thumb, lastCheck: now };
+      if (!disneyTimeLoggedOnce) {
+        disneyTimeLoggedOnce = true;
+        console.info('[StreamKeys] Found Disney progress bar (aria-valuenow)');
+      }
+      return time;
+    }
+  }
+
+  // Update cache to indicate we didn't find it
+  disneyProgressBarCache = { element: null, lastCheck: now };
+  return null;
+}
+
+/**
  * Initialize Disney+ handler
  */
 export function initDisneyHandler(): void {
@@ -53,6 +118,10 @@ export function initDisneyHandler(): void {
     name: 'Disney+',
 
     getPlayer: () => document.body.querySelector('disney-web-player'),
+
+    getVideo: getDisneyVideo,
+
+    getPlaybackTime: getDisneyPlaybackTime,
 
     getButton: (keyCode: string): HTMLElement | null => {
       const selector = keyMap[keyCode];

@@ -1,6 +1,6 @@
 // HBO Max handler - service-specific configuration
 
-import { createHandler } from './factory';
+import { createHandler } from '@/handlers/factory';
 import type { SubtitleItem } from '@/types';
 
 // Guard attribute - uses HTML element attribute for atomic check-and-set

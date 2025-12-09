@@ -42,6 +42,8 @@ export function createHandler(config: HandlerConfig): HandlerAPI {
   if (features.restorePosition) {
     restorePositionAPI = initRestorePosition({
       getPlayer: config.getPlayer,
+      getVideo: config.getVideo,
+      getPlaybackTime: config.getPlaybackTime,
     });
     cleanupFns.push(restorePositionAPI.cleanup);
   }
