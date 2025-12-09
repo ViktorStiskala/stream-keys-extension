@@ -2,7 +2,21 @@
 
 import type { PositionEntry, StreamKeysVideoElement } from '@/types';
 import { isPositionHistoryEnabled } from '@/core/settings';
-import { formatTime } from '@/core/video';
+import { formatTime, getDisneyPlaybackTime } from '@/core/video';
+
+/**
+ * Get the actual playback time, accounting for streaming services like Disney+
+ * that use MediaSource where video.currentTime doesn't reflect actual position.
+ */
+function getActualPlaybackTime(video: StreamKeysVideoElement): number {
+  // For Disney+, try to get the actual time from their progress bar
+  const disneyTime = getDisneyPlaybackTime();
+  if (disneyTime !== null) {
+    return disneyTime;
+  }
+  // Fallback to standard video currentTime
+  return video.currentTime;
+}
 
 // Constants
 export const SEEK_MAX_HISTORY = 3;
@@ -152,14 +166,10 @@ export function setupVideoTracking(
     }
   };
 
-  // Track time updates
-  const handleLoadedMetadata = () => {
-    video._lastKnownTime = video.currentTime;
-  };
-
+  // Track time updates - use actual playback time for streaming services
   const handleTimeUpdate = () => {
     if (!video.seeking) {
-      video._lastKnownTime = video.currentTime;
+      video._lastKnownTime = getActualPlaybackTime(video);
     }
   };
 
@@ -167,12 +177,15 @@ export function setupVideoTracking(
   const captureLoadTimeOnce = () => {
     if (state.loadTimePosition === null) {
       setTimeout(() => {
-        if (state.loadTimePosition === null && video.currentTime >= SEEK_MIN_DIFF_SECONDS) {
-          state.loadTimePosition = video.currentTime;
+        const actualTime = getActualPlaybackTime(video);
+
+        if (state.loadTimePosition === null && actualTime >= SEEK_MIN_DIFF_SECONDS) {
+          state.loadTimePosition = actualTime;
           console.info(
             `[StreamKeys] Load time position captured: ${formatTime(state.loadTimePosition)}`
           );
         }
+
         setTimeout(() => {
           if (!video._streamKeysReadyForTracking) {
             video._streamKeysReadyForTracking = true;
@@ -185,7 +198,6 @@ export function setupVideoTracking(
 
   // Set up listeners
   video.addEventListener('seeking', handleSeeking);
-  video.addEventListener('loadedmetadata', handleLoadedMetadata);
   video.addEventListener('timeupdate', handleTimeUpdate);
   video.addEventListener('canplay', captureLoadTimeOnce);
   video.addEventListener('playing', captureLoadTimeOnce);
@@ -197,7 +209,7 @@ export function setupVideoTracking(
 
   // Initialize if video is already loaded
   if (video.readyState >= 1) {
-    video._lastKnownTime = video.currentTime;
+    video._lastKnownTime = getActualPlaybackTime(video);
   }
   if (video.readyState >= 3) {
     captureLoadTimeOnce();
@@ -205,12 +217,12 @@ export function setupVideoTracking(
 
   video._streamKeysSeekListenerAdded = true;
 
-  // Start RAF tracking
+  // Start RAF tracking - use actual playback time
   let trackingFrame: number | null = null;
   const track = () => {
     const currentVideo = getVideoElement();
     if (currentVideo && !currentVideo.seeking) {
-      currentVideo._lastKnownTime = currentVideo.currentTime;
+      currentVideo._lastKnownTime = getActualPlaybackTime(currentVideo);
     }
     trackingFrame = requestAnimationFrame(track);
   };
@@ -221,7 +233,6 @@ export function setupVideoTracking(
   // Return cleanup function
   return () => {
     video.removeEventListener('seeking', handleSeeking);
-    video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     video.removeEventListener('timeupdate', handleTimeUpdate);
     if (trackingFrame !== null) {
       cancelAnimationFrame(trackingFrame);

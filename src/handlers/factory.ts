@@ -23,7 +23,7 @@ import type { HandlerConfig, HandlerAPI } from './types';
  * Create a handler with composable features
  */
 export function createHandler(config: HandlerConfig): HandlerAPI {
-  console.info(`[StreamKeys] ${config.name} extension loaded`);
+  console.info(`[StreamKeys] ${config.name} extension loaded at ${new Date().toISOString()}`);
 
   const cleanupFns: CleanupFn[] = [];
 

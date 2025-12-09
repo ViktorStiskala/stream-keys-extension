@@ -7,6 +7,9 @@ const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
 const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
 const DEFAULT_POSITION_HISTORY = true;
 
+// Track injected tabs to prevent double injection
+const injectedTabs = new Map<number, string>();
+
 /**
  * Handler configuration for each supported service
  */
@@ -41,9 +44,9 @@ async function injectHandler(tabId: number, handlerFile: string): Promise<void> 
         : DEFAULT_POSITION_HISTORY,
   };
 
-  // Inject settings as global variable
+  // Inject settings as global variable (main frame only)
   await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
+    target: { tabId },
     func: (settingsObj: StreamKeysSettings) => {
       window.__streamKeysSettings = settingsObj;
     },
@@ -51,9 +54,9 @@ async function injectHandler(tabId: number, handlerFile: string): Promise<void> 
     world: 'MAIN',
   });
 
-  // Inject handler bundle
+  // Inject handler bundle (main frame only)
   await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
+    target: { tabId },
     files: [handlerFile],
     world: 'MAIN',
   });
@@ -74,7 +77,31 @@ chrome.webNavigation.onCompleted.addListener((details) => {
   }
 
   const handler = findHandler(details.url);
-  if (handler) {
-    injectHandler(details.tabId, handler.handlerFile);
+  if (!handler) {
+    return;
+  }
+
+  // Check if already injected for this tab (prevents double injection on SPA navigation)
+  const previousHandler = injectedTabs.get(details.tabId);
+  if (previousHandler === handler.handlerFile) {
+    return;
+  }
+
+  injectedTabs.set(details.tabId, handler.handlerFile);
+  injectHandler(details.tabId, handler.handlerFile);
+});
+
+// Clean up when tab is closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  injectedTabs.delete(tabId);
+});
+
+// Clean up when tab navigates away from supported service
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+  if (details.frameId !== 0) return;
+
+  const handler = findHandler(details.url);
+  if (!handler) {
+    injectedTabs.delete(details.tabId);
   }
 });

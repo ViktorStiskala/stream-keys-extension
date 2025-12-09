@@ -3,6 +3,19 @@
 import { createHandler } from './factory';
 import type { SubtitleItem } from '@/types';
 
+// Guard attribute - uses HTML element attribute for atomic check-and-set
+const GUARD_ATTR = 'data-streamkeys-disney';
+
+function shouldSkipInit(): boolean {
+  // Use HTML attribute as guard - atomic check across script contexts
+  const html = document.documentElement;
+  if (html.hasAttribute(GUARD_ATTR)) {
+    return true;
+  }
+  html.setAttribute(GUARD_ATTR, '1');
+  return false;
+}
+
 /**
  * Get a button from Disney+'s Shadow DOM
  */
@@ -103,4 +116,9 @@ export function initDisneyHandler(): void {
       },
     },
   });
+}
+
+// Auto-initialize when script is loaded (with guard against double execution)
+if (!shouldSkipInit()) {
+  initDisneyHandler();
 }
