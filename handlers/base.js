@@ -12,10 +12,11 @@ function createHandler(config) {
   // Position history state
   let positionHistory = []; // Array of { time: number, label: string }
   const SEEK_MAX_HISTORY = 3;
-  const SEEK_MIN_DIFF_SECONDS = 10; // Minimum difference between saved positions
+  const SEEK_MIN_DIFF_SECONDS = 15; // Minimum difference between saved positions
   let lastSeekTime = 0;
-  const SEEK_DEBOUNCE_MS = 5000; // 5 seconds - rapid seeks within this window are grouped
+  const SEEK_DEBOUNCE_MS = 5000; // 5 seconds - rapid seeks within this window are grouped (only for keyboard/button seeks)
   let loadTimePosition = null; // Position when video started playing (captured after initial load)
+  let isKeyboardOrButtonSeek = false; // Flag to track if seek is from keyboard/button vs timeline click
 
   // Get settings from injected global
   const getSettings = () => window.__streamKeysSettings || {};
@@ -485,8 +486,14 @@ function createHandler(config) {
         const separator = document.createElement('div');
         separator.style.cssText = `
           height: 1px;
-          background: rgba(255, 255, 255, 0.15);
-          margin: 4px -8px;
+          background: linear-gradient(
+            to right,
+            rgba(255,255,255,0) 0,
+            rgba(255,255,255,0.15) 24px,
+            rgba(255,255,255,0.15) calc(100% - 24px),
+            rgba(255,255,255,0) 100%
+          );
+          margin: 4px -20px;
         `;
         list.appendChild(separator);
       }
@@ -628,11 +635,15 @@ function createHandler(config) {
     }
 
     // Record position before keyboard skip actions (debounced)
+    // Also mark this as a keyboard/button seek so timeline clicks aren't debounced
     if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      isKeyboardOrButtonSeek = true;
       const video = getVideoElement();
       if (video) {
         recordPositionBeforeSeek(video.currentTime);
       }
+      // Reset flag after seek completes
+      setTimeout(() => { isKeyboardOrButtonSeek = false; }, 500);
     }
 
     e.preventDefault();
@@ -756,7 +767,6 @@ function createHandler(config) {
   };
 
   // Handle video seeking events (for UI buttons and timeline clicks)
-  // Uses the same debouncing as keyboard seeks
   const handleVideoSeeking = () => {
     if (!isPositionHistoryEnabled()) return;
     
@@ -764,15 +774,34 @@ function createHandler(config) {
     // Only record seeks after the video has been playing for a bit
     // This prevents recording the initial resume position when video loads
     if (video && video._lastKnownTime !== undefined && video._streamKeysReadyForTracking) {
-      recordPositionBeforeSeek(video._lastKnownTime);
+      if (isKeyboardOrButtonSeek) {
+        // Keyboard arrow key seeks are handled by recordPositionBeforeSeek with debouncing
+        // Skip here to avoid double-saving
+        return;
+      }
+      // UI buttons and timeline clicks: save immediately (only 10s diff check applies)
+      savePositionToHistory(video._lastKnownTime);
     }
   };
 
-  // Track current time periodically to know position before seek
+  // Track current time to know position before seek
+  // This needs to run frequently to capture position right before a seek happens
   const trackVideoTime = () => {
     const video = getVideoElement();
     if (video && !video.seeking) {
       video._lastKnownTime = video.currentTime;
+    }
+  };
+  
+  // Run time tracking frequently using requestAnimationFrame when video exists
+  let trackingAnimationFrame = null;
+  const startTimeTracking = () => {
+    const track = () => {
+      trackVideoTime();
+      trackingAnimationFrame = requestAnimationFrame(track);
+    };
+    if (!trackingAnimationFrame) {
+      track();
     }
   };
 
@@ -840,6 +869,10 @@ function createHandler(config) {
       }
       
       video._streamKeysSeekListenerAdded = true;
+      
+      // Start frequent time tracking for accurate seek position capture
+      startTimeTracking();
+      
       console.info('[StreamKeys] Video seek listener added');
     }
   };
