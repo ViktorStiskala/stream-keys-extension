@@ -315,7 +315,7 @@ function createHandler(config) {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     `;
 
     const currentTimeLabel = document.createElement('span');
@@ -472,9 +472,24 @@ function createHandler(config) {
     }
 
     // Create items for each position (keys start from 0)
+    // Add visual separation between load time and history positions
+    const hasLoadTime = allPositions.length > 0 && allPositions[0].isLoadTime;
+    const hasHistoryItems = allPositions.some(pos => !pos.isLoadTime);
+    
     allPositions.forEach((pos, index) => {
       const item = createPositionItem(index, pos.time, pos.label, pos.relativeText, pos.isLoadTime);
       list.appendChild(item);
+      
+      // Add separator line after load time if there are history items
+      if (hasLoadTime && hasHistoryItems && index === 0) {
+        const separator = document.createElement('div');
+        separator.style.cssText = `
+          height: 1px;
+          background: rgba(255, 255, 255, 0.15);
+          margin: 4px -8px;
+        `;
+        list.appendChild(separator);
+      }
     });
 
     restoreDialog.appendChild(list);
@@ -782,31 +797,46 @@ function createHandler(config) {
         }
       });
       
-      // Mark video as ready for tracking after it has been playing for 2 seconds
-      // This prevents recording the initial resume position
-      // Also capture the load time position after a short delay to let player settle
-      video.addEventListener('playing', () => {
-        if (!video._streamKeysPlaybackStarted) {
-          video._streamKeysPlaybackStarted = true;
-          
-          // Capture load time position after 500ms to let player settle on final position
+      // Capture load time position when video settles (either from seeked or canplay)
+      // This works whether user starts playback or not
+      const captureLoadTimeOnce = () => {
+        if (loadTimePosition === null) {
+          // Wait a bit for player to settle on final position
           setTimeout(() => {
             if (loadTimePosition === null && video.currentTime >= SEEK_MIN_DIFF_SECONDS) {
               loadTimePosition = video.currentTime;
               console.info(`[StreamKeys] Load time position captured: ${formatTime(loadTimePosition)}`);
             }
-          }, 500);
-          
-          setTimeout(() => {
-            video._streamKeysReadyForTracking = true;
-            console.info('[StreamKeys] Ready to track seeks');
-          }, 2000);
+            // Mark ready for tracking after load position is captured
+            // Use a short delay to avoid recording the initial resume seek
+            setTimeout(() => {
+              if (!video._streamKeysReadyForTracking) {
+                video._streamKeysReadyForTracking = true;
+                console.info('[StreamKeys] Ready to track seeks');
+              }
+            }, 500);
+          }, 1000);
+        }
+      };
+      
+      // Try to capture load time from multiple events to handle different player behaviors
+      video.addEventListener('canplay', captureLoadTimeOnce);
+      video.addEventListener('playing', captureLoadTimeOnce);
+      // Also capture if video was seeked during load (resume position)
+      video.addEventListener('seeked', () => {
+        if (!video._streamKeysReadyForTracking) {
+          captureLoadTimeOnce();
         }
       });
       
       // Initialize _lastKnownTime immediately if video is already loaded
       if (video.readyState >= 1) {
         video._lastKnownTime = video.currentTime;
+      }
+      
+      // If video is already ready, try to capture load time
+      if (video.readyState >= 3) {
+        captureLoadTimeOnce();
       }
       
       video._streamKeysSeekListenerAdded = true;
