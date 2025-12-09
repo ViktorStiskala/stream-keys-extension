@@ -11,9 +11,11 @@ function createHandler(config) {
 
   // Position history state
   let positionHistory = []; // Array of { time: number, label: string }
-  const MAX_HISTORY = 3;
+  const SEEK_MAX_HISTORY = 3;
+  const SEEK_MIN_DIFF_SECONDS = 10; // Minimum difference between saved positions
   let lastSeekTime = 0;
   const SEEK_DEBOUNCE_MS = 5000; // 5 seconds - rapid seeks within this window are grouped
+  let loadTimePosition = null; // Position when video started playing (captured after initial load)
 
   // Get settings from injected global
   const getSettings = () => window.__streamKeysSettings || {};
@@ -139,12 +141,17 @@ function createHandler(config) {
     if (!isPositionHistoryEnabled()) return;
     
     // Don't save very short positions
-    if (time < 5) return;
+    if (time < SEEK_MIN_DIFF_SECONDS) return;
     
-    // Check if this position is too close to ANY saved position (within 30 seconds)
+    // Check if this position is too close to load time
+    if (loadTimePosition !== null && Math.abs(loadTimePosition - time) < SEEK_MIN_DIFF_SECONDS) {
+      return;
+    }
+    
+    // Check if this position is too close to ANY saved position
     // This prevents overwriting restore options when user restores to a nearby position
     const tooCloseToExisting = positionHistory.some(entry => 
-      Math.abs(entry.time - time) < 30
+      Math.abs(entry.time - time) < SEEK_MIN_DIFF_SECONDS
     );
     if (tooCloseToExisting) return;
 
@@ -156,12 +163,12 @@ function createHandler(config) {
 
     positionHistory.push(entry);
     
-    // Keep only last MAX_HISTORY entries
-    if (positionHistory.length > MAX_HISTORY) {
+    // Keep only last SEEK_MAX_HISTORY entries
+    if (positionHistory.length > SEEK_MAX_HISTORY) {
       positionHistory.shift();
     }
     
-    console.info(`[StreamKeys] Position saved: ${entry.label}`);
+    console.info(`[StreamKeys] Seek position saved: ${entry.label}`);
   };
 
   // Record position before any seek (keyboard or UI)
@@ -240,11 +247,6 @@ function createHandler(config) {
       return;
     }
 
-    if (positionHistory.length === 0) {
-      showBanner('No saved positions');
-      return;
-    }
-
     restoreDialog = document.createElement('div');
     restoreDialog.id = 'streamkeys-restore-dialog';
     restoreDialog.style.cssText = `
@@ -284,10 +286,11 @@ function createHandler(config) {
       background: transparent;
       border: none;
       color: rgba(255, 255, 255, 0.6);
-      font-size: 24px;
+      font-size: 26px;
       cursor: pointer;
       padding: 0;
       line-height: 1;
+      margin-top: -5px;
       transition: color 0.2s;
     `;
     closeButton.onmouseenter = () => closeButton.style.color = 'white';
@@ -338,15 +341,19 @@ function createHandler(config) {
     const list = document.createElement('div');
     list.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
 
-    // Show positions in reverse order (most recent first)
-    const reversedHistory = [...positionHistory].reverse();
-    reversedHistory.forEach((entry, index) => {
+    // Get video duration for progress bar calculation
+    const video = getVideoElement();
+    const videoDuration = video ? video.duration : 0;
+
+    // Helper to create a position item
+    const createPositionItem = (keyNumber, time, timeText, relativeTimeText, isLoadTime = false) => {
       const item = document.createElement('button');
       item.style.cssText = `
+        position: relative;
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px 16px;
+        padding: 12px 16px 16px 16px;
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 8px;
@@ -355,12 +362,13 @@ function createHandler(config) {
         cursor: pointer;
         transition: background 0.2s;
         text-align: left;
+        overflow: hidden;
       `;
       item.onmouseenter = () => item.style.background = 'rgba(255, 255, 255, 0.2)';
       item.onmouseleave = () => item.style.background = 'rgba(255, 255, 255, 0.1)';
 
       const keyHint = document.createElement('span');
-      keyHint.textContent = `${index + 1}`;
+      keyHint.textContent = `${keyNumber}`;
       keyHint.style.cssText = `
         display: inline-flex;
         align-items: center;
@@ -375,40 +383,106 @@ function createHandler(config) {
       `;
 
       const timeLabel = document.createElement('span');
-      timeLabel.textContent = entry.label;
+      timeLabel.textContent = timeText;
       timeLabel.style.cssText = `
         flex: 1;
         font-variant-numeric: tabular-nums;
       `;
 
       const relativeTime = document.createElement('span');
-      relativeTime.className = 'streamkeys-relative-time';
-      relativeTime.dataset.savedAt = entry.savedAt;
+      if (!isLoadTime) {
+        relativeTime.className = 'streamkeys-relative-time';
+        relativeTime.dataset.savedAt = relativeTimeText;
+      } else {
+        relativeTime.textContent = relativeTimeText;
+      }
       relativeTime.style.cssText = `
         font-size: 12px;
         color: rgba(255, 255, 255, 0.5);
         flex-shrink: 0;
       `;
 
+      // Progress bar showing position in video
+      const progressBar = document.createElement('div');
+      const progressPercent = videoDuration > 0 ? (time / videoDuration) * 100 : 0;
+      progressBar.style.cssText = `
+        position: absolute;
+        bottom: 4px;
+        left: 16px;
+        right: 16px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+      `;
+
+      const progressFill = document.createElement('div');
+      progressFill.style.cssText = `
+        width: ${progressPercent}%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 2px;
+      `;
+      progressBar.appendChild(progressFill);
+
       item.appendChild(keyHint);
       item.appendChild(timeLabel);
       item.appendChild(relativeTime);
+      item.appendChild(progressBar);
 
       item.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        restorePosition(entry.time);
+        restorePosition(time);
         closeRestoreDialog();
       };
 
+      return item;
+    };
+
+    // Build list of all positions to show
+    const allPositions = [];
+    
+    // Add load time position first (only if >= SEEK_MIN_DIFF_SECONDS)
+    if (loadTimePosition !== null && loadTimePosition >= SEEK_MIN_DIFF_SECONDS) {
+      allPositions.push({
+        time: loadTimePosition,
+        label: formatTime(loadTimePosition),
+        relativeText: 'load time',
+        isLoadTime: true
+      });
+    }
+
+    // Add history positions (most recent first)
+    const reversedHistory = [...positionHistory].reverse();
+    reversedHistory.forEach(entry => {
+      allPositions.push({
+        time: entry.time,
+        label: entry.label,
+        relativeText: entry.savedAt,
+        isLoadTime: false
+      });
+    });
+
+    // Show message if no positions available
+    if (allPositions.length === 0) {
+      closeRestoreDialog();
+      showBanner('No saved positions');
+      return;
+    }
+
+    // Create items for each position (keys start from 0)
+    allPositions.forEach((pos, index) => {
+      const item = createPositionItem(index, pos.time, pos.label, pos.relativeText, pos.isLoadTime);
       list.appendChild(item);
     });
 
     restoreDialog.appendChild(list);
 
     // Hint text
+    const maxKey = allPositions.length - 1;
     const hint = document.createElement('div');
-    hint.textContent = 'Press 1-3 to select, Esc or R to close';
+    hint.textContent = maxKey === 0 ? 'Press 0 to select, Esc or R to close' : `Press 0-${maxKey} to select, Esc or R to close`;
     hint.style.cssText = `
       font-size: 12px;
       color: rgba(255, 255, 255, 0.5);
@@ -448,6 +522,9 @@ function createHandler(config) {
   const handleRestoreDialogKeys = (e) => {
     if (!restoreDialog) return false;
 
+    // Don't intercept events with modifier keys (allow Cmd+R, Ctrl+R for page reload, etc.)
+    if (e.metaKey || e.ctrlKey) return false;
+
     // Handle Escape - close dialog and prevent fullscreen exit
     if (e.code === 'Escape') {
       e.preventDefault();
@@ -464,15 +541,25 @@ function createHandler(config) {
       return true;
     }
 
-    // Handle number keys 1-3
+    // Handle number keys 0-3
     const keyNum = parseInt(e.key, 10);
-    if (keyNum >= 1 && keyNum <= 3) {
+    if (keyNum >= 0 && keyNum <= 3) {
       e.preventDefault();
       e.stopPropagation();
+      
+      // Build the same positions array as the dialog
+      const allPositions = [];
+      if (loadTimePosition !== null && loadTimePosition >= SEEK_MIN_DIFF_SECONDS) {
+        allPositions.push({ time: loadTimePosition });
+      }
       const reversedHistory = [...positionHistory].reverse();
-      const entry = reversedHistory[keyNum - 1];
-      if (entry) {
-        restorePosition(entry.time);
+      reversedHistory.forEach(entry => {
+        allPositions.push({ time: entry.time });
+      });
+      
+      const position = allPositions[keyNum];
+      if (position) {
+        restorePosition(position.time);
         closeRestoreDialog();
       }
       return true;
@@ -491,6 +578,12 @@ function createHandler(config) {
       return;
     }
 
+    // Don't intercept events with modifier keys (allow Cmd+Shift+C for dev tools, etc.)
+    // Exception: allow plain Escape key handling even without this check
+    if (e.metaKey || e.ctrlKey || e.altKey) {
+      return;
+    }
+
     // Skip if user is typing in an input/textarea
     const activeEl = document.activeElement;
     if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
@@ -505,8 +598,8 @@ function createHandler(config) {
       return;
     }
 
-    // Handle position restore dialog (but not Cmd+R or Ctrl+R for page reload)
-    if (e.code === 'KeyR' && isPositionHistoryEnabled() && !e.metaKey && !e.ctrlKey) {
+    // Handle position restore dialog
+    if (e.code === 'KeyR' && isPositionHistoryEnabled()) {
       e.preventDefault();
       e.stopPropagation();
       createRestoreDialog();
@@ -653,7 +746,9 @@ function createHandler(config) {
     if (!isPositionHistoryEnabled()) return;
     
     const video = getVideoElement();
-    if (video && video._lastKnownTime !== undefined) {
+    // Only record seeks after the video has been playing for a bit
+    // This prevents recording the initial resume position when video loads
+    if (video && video._lastKnownTime !== undefined && video._streamKeysReadyForTracking) {
       recordPositionBeforeSeek(video._lastKnownTime);
     }
   };
@@ -670,11 +765,67 @@ function createHandler(config) {
   const setupVideoListeners = () => {
     const video = getVideoElement();
     if (video && !video._streamKeysSeekListenerAdded) {
+      // Track when the video started playing to ignore initial resume seeks
+      video._streamKeysPlaybackStarted = false;
+      video._streamKeysReadyForTracking = false;
+      
       video.addEventListener('seeking', handleVideoSeeking);
+      
+      // Also track time when video metadata loads or time updates
+      // This ensures we have _lastKnownTime set before any early seeks
+      video.addEventListener('loadedmetadata', () => {
+        video._lastKnownTime = video.currentTime;
+      });
+      video.addEventListener('timeupdate', () => {
+        if (!video.seeking) {
+          video._lastKnownTime = video.currentTime;
+        }
+      });
+      
+      // Mark video as ready for tracking after it has been playing for 2 seconds
+      // This prevents recording the initial resume position
+      // Also capture the load time position after a short delay to let player settle
+      video.addEventListener('playing', () => {
+        if (!video._streamKeysPlaybackStarted) {
+          video._streamKeysPlaybackStarted = true;
+          
+          // Capture load time position after 500ms to let player settle on final position
+          setTimeout(() => {
+            if (loadTimePosition === null && video.currentTime >= SEEK_MIN_DIFF_SECONDS) {
+              loadTimePosition = video.currentTime;
+              console.info(`[StreamKeys] Load time position captured: ${formatTime(loadTimePosition)}`);
+            }
+          }, 500);
+          
+          setTimeout(() => {
+            video._streamKeysReadyForTracking = true;
+            console.info('[StreamKeys] Ready to track seeks');
+          }, 2000);
+        }
+      });
+      
+      // Initialize _lastKnownTime immediately if video is already loaded
+      if (video.readyState >= 1) {
+        video._lastKnownTime = video.currentTime;
+      }
+      
       video._streamKeysSeekListenerAdded = true;
       console.info('[StreamKeys] Video seek listener added');
     }
   };
+
+  // Try to setup video listeners immediately and frequently at first
+  const earlySetup = () => {
+    setupVideoListeners();
+    trackVideoTime();
+  };
+  
+  // Run setup immediately
+  earlySetup();
+  
+  // Run setup frequently during the first few seconds to catch early video loads
+  const earlySetupInterval = setInterval(earlySetup, 100);
+  setTimeout(() => clearInterval(earlySetupInterval), 5000);
 
   // Setup player periodically
   setInterval(() => {
