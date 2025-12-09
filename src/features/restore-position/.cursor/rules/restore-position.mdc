@@ -52,18 +52,54 @@ Capture happens on `canplay`, `playing`, or `seeked` events:
 
 ## Video Time Tracking
 
-Use `requestAnimationFrame` for accurate pre-seek position capture:
+### Two-Timestamp System with Delayed Capture
+
+For services like Disney+ where the UI updates before `video.seeking` becomes true, we use a two-timestamp system:
+
+- `_streamKeysLastKnownTime`: Always current, updated every RAF frame
+- `_streamKeysStableTime`: Delayed by ~500ms, guaranteed to be pre-seek value
+
+The stable time is updated using delayed capture with `setTimeout`:
 ```typescript
 const track = () => {
-  if (video && !video.seeking) {
-    video._streamKeysLastKnownTime = video._streamKeysGetPlaybackTime?.() ?? video.currentTime;
+  const newTime = getActualPlaybackTime(currentVideo);
+  currentVideo._streamKeysLastKnownTime = newTime;
+
+  // Schedule stable time update with captured value (every ~200ms)
+  if (now - lastStableSchedule >= STABLE_TIME_SCHEDULE_INTERVAL_MS) {
+    const capturedTime = newTime; // Frozen at this moment
+    setTimeout(() => {
+      currentVideo._streamKeysStableTime = capturedTime; // Used 500ms later
+    }, STABLE_TIME_DELAY_MS);
+    lastStableSchedule = now;
   }
   requestAnimationFrame(track);
 };
 ```
 
-Store tracking state on video element:
-- `video._streamKeysLastKnownTime`: Last known position before seek
-- `video._streamKeysGetPlaybackTime()`: Method that returns actual playback time (uses custom logic if available)
-- `video._streamKeysSeekListenerAdded`: Prevents duplicate listeners
-- `video._streamKeysReadyForTracking`: True after initial load complete
+The key insight: the value passed to `setTimeout` is captured at scheduling time, not read when the timeout fires. This eliminates race conditions where the UI updates before `video.seeking` becomes true.
+
+After seek completes (`seeked` event), both times are synced to the current position.
+
+### Getting Pre-Seek Position
+
+Use `_streamKeysGetStableTime()` method which provides consistent fallback:
+```typescript
+video._streamKeysGetStableTime = () => {
+  return video._streamKeysStableTime ??
+         video._streamKeysLastKnownTime ??
+         video._streamKeysGetPlaybackTime?.() ??
+         video.currentTime;
+};
+```
+
+This method is used by both keyboard seeks and timeline/UI seeks for consistent behavior.
+
+### Video Element Properties
+
+- `_streamKeysLastKnownTime`: Current position (updated every frame)
+- `_streamKeysStableTime`: Delayed position (~500ms behind, pre-seek safe)
+- `_streamKeysGetPlaybackTime()`: Returns actual playback time (uses custom logic for services like Disney+)
+- `_streamKeysGetStableTime()`: Returns stable time with fallback chain
+- `_streamKeysSeekListenerAdded`: Prevents duplicate listeners
+- `_streamKeysReadyForTracking`: True after initial load complete

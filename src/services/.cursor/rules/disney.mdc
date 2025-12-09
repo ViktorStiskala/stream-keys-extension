@@ -1,7 +1,10 @@
 ---
-description: Disney+ Handler - Shadow DOM and Player Controls
+description: Disney+ / Disney Plus streaming service handler - Shadow DOM and Player Controls. Apply when user mentions Disney+, Disney Plus, or Disney streaming.
 globs:
   - "**/disney.ts"
+  - "**/services/disney*"
+  - "**/handlers/disney*"
+  - "resources/dom/disney*"
 ---
 
 # Disney+ Handler Notes
@@ -33,6 +36,17 @@ const totalSeconds = parseInt(thumb?.getAttribute('aria-valuemax') || '0', 10);
 
 - `aria-valuenow`: current position in seconds
 - `aria-valuemax`: total duration in seconds
+
+### Progress Bar Timing Issue
+
+Disney+ updates the progress bar's `aria-valuenow` **before** `video.seeking` becomes `true`. This creates a race condition when capturing pre-seek positions:
+
+1. User clicks timeline or presses seek key
+2. Disney+ immediately updates progress bar to target position
+3. `video.seeking` is still `false` at this point
+4. Only then does `video.seeking` become `true`
+
+The solution uses delayed capture: values passed to `setTimeout` are frozen at scheduling time. By scheduling stable time updates with a 500ms delay (and throttling to every 200ms), the stable time always reflects a position from before any seek started. See `restore-position` rules for implementation details.
 
 ## Shadow DOM Button Access
 

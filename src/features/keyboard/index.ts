@@ -76,7 +76,7 @@ export function initKeyboard(config: KeyboardConfig): KeyboardAPI {
     if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && restorePosition) {
       restorePosition.setKeyboardSeek(true);
       const video = getVideoElement();
-      const currentTime = video?._streamKeysGetPlaybackTime?.() ?? video?.currentTime;
+      const currentTime = video?._streamKeysGetStableTime?.();
       if (currentTime !== undefined) {
         restorePosition.recordBeforeSeek(currentTime);
       }

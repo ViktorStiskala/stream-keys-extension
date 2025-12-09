@@ -8,6 +8,10 @@ import { formatTime } from '@/core/video';
 export const SEEK_MAX_HISTORY = 3;
 export const SEEK_MIN_DIFF_SECONDS = 15;
 export const SEEK_DEBOUNCE_MS = 5000;
+// Interval for scheduling stable time updates (how often we capture a value)
+const STABLE_TIME_SCHEDULE_INTERVAL_MS = 200;
+// Delay before a captured value becomes "stable" (guarantees pre-seek value)
+const STABLE_TIME_DELAY_MS = 500;
 
 // State
 export interface PositionHistoryState {
@@ -146,21 +150,22 @@ export function setupVideoTracking(
     return v._streamKeysGetPlaybackTime?.() ?? v.currentTime;
   };
 
-  // Handle seeking events
+  // Handle seeking events - use stable time (guaranteed pre-seek value)
   const handleSeeking = () => {
     if (!isPositionHistoryEnabled()) return;
 
-    if (video._streamKeysLastKnownTime !== undefined && video._streamKeysReadyForTracking) {
+    const stableTime = video._streamKeysGetStableTime?.();
+    if (stableTime !== undefined && video._streamKeysReadyForTracking) {
       if (state.isKeyboardOrButtonSeek) {
         // Keyboard seeks are handled by recordPositionBeforeSeek with debouncing
         return;
       }
-      // UI buttons and timeline clicks: save immediately
-      savePositionToHistory(state, video._streamKeysLastKnownTime);
+      // UI buttons and timeline clicks: save immediately using stable time
+      savePositionToHistory(state, stableTime);
     }
   };
 
-  // Track time updates - use actual playback time for streaming services
+  // Track time updates - always update current time
   const handleTimeUpdate = () => {
     if (!video.seeking) {
       video._streamKeysLastKnownTime = getActualPlaybackTime(video);
@@ -190,16 +195,23 @@ export function setupVideoTracking(
     }
   };
 
+  // After seek completes, sync both times to current position
+  const handleSeeked = () => {
+    const currentTime = getActualPlaybackTime(video);
+    video._streamKeysLastKnownTime = currentTime;
+    video._streamKeysStableTime = currentTime;
+
+    if (!video._streamKeysReadyForTracking) {
+      captureLoadTimeOnce();
+    }
+  };
+
   // Set up listeners
   video.addEventListener('seeking', handleSeeking);
   video.addEventListener('timeupdate', handleTimeUpdate);
   video.addEventListener('canplay', captureLoadTimeOnce);
   video.addEventListener('playing', captureLoadTimeOnce);
-  video.addEventListener('seeked', () => {
-    if (!video._streamKeysReadyForTracking) {
-      captureLoadTimeOnce();
-    }
-  });
+  video.addEventListener('seeked', handleSeeked);
 
   // Initialize if video is already loaded
   if (video.readyState >= 1) {
@@ -211,12 +223,33 @@ export function setupVideoTracking(
 
   video._streamKeysSeekListenerAdded = true;
 
-  // Start RAF tracking - use actual playback time
+  // Start RAF tracking with delayed stable time capture
+  // _streamKeysLastKnownTime: always current (updated every frame)
+  // _streamKeysStableTime: delayed by 500ms, guaranteed to be pre-seek value
   let trackingFrame: number | null = null;
+  let lastStableSchedule = 0;
+
   const track = () => {
     const currentVideo = getVideoElement();
     if (currentVideo && !currentVideo.seeking) {
-      currentVideo._streamKeysLastKnownTime = getActualPlaybackTime(currentVideo);
+      const newTime = getActualPlaybackTime(currentVideo);
+
+      // Always update current time
+      currentVideo._streamKeysLastKnownTime = newTime;
+
+      // Schedule stable time update with delay (throttled to every ~200ms)
+      // The captured value is passed to setTimeout, so it's frozen at this moment
+      const now = Date.now();
+      if (now - lastStableSchedule >= STABLE_TIME_SCHEDULE_INTERVAL_MS) {
+        const capturedTime = newTime;
+        setTimeout(() => {
+          // Update stable time to the value from 500ms ago
+          if (currentVideo) {
+            currentVideo._streamKeysStableTime = capturedTime;
+          }
+        }, STABLE_TIME_DELAY_MS);
+        lastStableSchedule = now;
+      }
     }
     trackingFrame = requestAnimationFrame(track);
   };
@@ -227,6 +260,7 @@ export function setupVideoTracking(
   // Return cleanup function
   return () => {
     video.removeEventListener('seeking', handleSeeking);
+    video.removeEventListener('seeked', handleSeeked);
     video.removeEventListener('timeupdate', handleTimeUpdate);
     if (trackingFrame !== null) {
       cancelAnimationFrame(trackingFrame);

@@ -59,12 +59,16 @@ declare global {
 // Video element with StreamKeys tracking properties
 export interface StreamKeysVideoElement extends HTMLVideoElement {
   _streamKeysLastKnownTime?: number;
+  /** Stable time - always ~500ms behind, guaranteed to be pre-seek value */
+  _streamKeysStableTime?: number;
   _streamKeysSeekListenerAdded?: boolean;
   _streamKeysReadyForTracking?: boolean;
   _streamKeysPlaybackStarted?: boolean;
   _streamKeysMouseListenerAdded?: boolean;
   /** Get actual playback time (uses custom logic if available, else video.currentTime) */
   _streamKeysGetPlaybackTime?: () => number;
+  /** Get stable time for position restore (uses fallback chain) */
+  _streamKeysGetStableTime?: () => number;
 }
 
 // Player element with StreamKeys properties

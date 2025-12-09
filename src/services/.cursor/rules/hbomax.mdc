@@ -1,7 +1,10 @@
 ---
-description: HBO Max Handler - Standard DOM and Player Controls
+description: HBO Max / HBO / Max streaming service handler - Standard DOM and Player Controls. Apply when user mentions HBO Max, HBO, or Max streaming.
 globs:
   - "**/hbomax.ts"
+  - "**/services/hbomax*"
+  - "**/handlers/hbomax*"
+  - "resources/dom/hbomax*"
 ---
 
 # HBO Max Handler Notes
@@ -58,3 +61,7 @@ HBO Max subtitle menu uses buttons with aria attributes:
 To check if subtitles are on: First button's `aria-checked !== "true"`
 
 To select a language: Click the corresponding button element.
+
+## DOM Reference
+
+**Important:** Always consult `resources/dom/hbomax.html` when implementing any DOM-related changes, including selectors, value extraction, element traversal, or player structure. This file contains a snapshot of the actual HBO Max player (irrelevant parts removed to make the file smaller) DOM structure and should be the primary reference for understanding the page layout.

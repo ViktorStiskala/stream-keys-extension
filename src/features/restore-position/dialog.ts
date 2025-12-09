@@ -213,8 +213,7 @@ export function createRestoreDialog(
     const currentVideo = getVideoElement();
     const currentTimeEl = document.getElementById(CURRENT_TIME_ID);
     if (currentTimeEl) {
-      const displayTime =
-        currentVideo?._streamKeysGetPlaybackTime?.() ?? currentVideo?.currentTime ?? 0;
+      const displayTime = currentVideo?._streamKeysGetPlaybackTime?.() ?? 0;
       currentTimeEl.textContent = formatTime(displayTime);
     }
 

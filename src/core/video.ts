@@ -28,6 +28,7 @@ function isActiveVideo(video: HTMLVideoElement): boolean {
 /**
  * Augment a video element with StreamKeys methods.
  * Adds _streamKeysGetPlaybackTime() which uses custom logic if available.
+ * Adds _streamKeysGetStableTime() which returns the stable pre-seek time.
  */
 function augmentVideoElement(
   video: HTMLVideoElement,
@@ -43,6 +44,16 @@ function augmentVideoElement(
         if (time !== null) return time;
       }
       return video.currentTime;
+    };
+
+    // Stable time getter with fallback chain for position restore
+    augmented._streamKeysGetStableTime = () => {
+      return (
+        augmented._streamKeysStableTime ??
+        augmented._streamKeysLastKnownTime ??
+        augmented._streamKeysGetPlaybackTime?.() ??
+        video.currentTime
+      );
     };
   }
 

@@ -10,6 +10,13 @@ This project uses cursor rules located under `.cursor/rules/*.mdc` and nested ru
 modules. **Always check and update** relevant rule files after introducing changes, to make sure they contain relevant
 information, and crucial rules for new code.
 
+### Service-specific Rules
+When the prompt mentions a specific streaming provider, **always load the corresponding rules**:
+- **Disney+, Disney Plus, Disney** → `src/services/.cursor/rules/disney.mdc`
+- **HBO Max, HBO, Max** → `src/services/.cursor/rules/hbomax.mdc`
+
+These rules contain critical DOM selectors, Shadow DOM access patterns, and service-specific quirks that must be followed.
+
 ## IMPORTANT: Code Quality Requirements
 
 **After ANY code change, you MUST run linters and fix all issues before the task is complete.**
@@ -42,10 +49,13 @@ stream-keys/
 │   │   ├── player.ts
 │   │   ├── video.ts
 │   │   └── settings.ts
-│   ├── handlers/            # Service-specific handlers
+│   ├── handlers/            # Handler factory and types
 │   │   ├── factory.ts       # createHandler() with feature composition
-│   │   ├── disney.ts
-│   │   └── hbomax.ts
+│   │   ├── index.ts         # Handler exports
+│   │   └── types.ts         # Handler type definitions
+│   ├── services/            # Service-specific implementations
+│   │   ├── disney.ts        # Disney+ handler
+│   │   └── hbomax.ts        # HBO Max handler
 │   ├── settings/            # Options page
 │   │   ├── index.ts
 │   │   └── settings.css
@@ -58,11 +68,11 @@ stream-keys/
 
 ## Adding New Streaming Services
 
-1. Create new handler in `src/handlers/` folder (e.g., `netflix.ts`)
+1. Create new service handler in `src/services/` folder (e.g., `netflix.ts`)
 2. Use `createHandler(config)` with service-specific config and feature flags
 3. Add URL matching in `src/background/index.ts` router
 4. Add host permissions in `src/manifest.json`
-5. Create service-specific Cursor rules file in `src/handlers/.cursor/rules/`
+5. Create service-specific Cursor rules file in `src/services/.cursor/rules/` (e.g., `netflix.mdc`)
 
 ## Handler Configuration with Feature Flags
 
