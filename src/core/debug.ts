@@ -47,6 +47,7 @@ function initConsoleForward(): void {
 
   const orig = {
     log: console.log,
+    info: console.info,
     warn: console.warn,
     error: console.error,
   };
@@ -54,6 +55,11 @@ function initConsoleForward(): void {
   console.log = (...args: unknown[]) => {
     sendToServer('LOG', args);
     orig.log.apply(console, args);
+  };
+
+  console.info = (...args: unknown[]) => {
+    sendToServer('INFO', args);
+    orig.info.apply(console, args);
   };
 
   console.warn = (...args: unknown[]) => {

@@ -4,6 +4,17 @@ import type { Plugin, ViteDevServer } from 'vite';
 
 const logPath = path.resolve('.cursor/debug.log');
 
+// ANSI color codes for terminal output
+const colors = {
+  reset: '\x1b[0m',
+  dim: '\x1b[2m',
+  cyan: '\x1b[36m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  magenta: '\x1b[35m',
+};
+
 // Private helpers
 function ensureLogFile(): void {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
@@ -13,6 +24,15 @@ function ensureLogFile(): void {
 function writeLog(level: string, source: string, msg: string): void {
   const line = `[${new Date().toISOString()}] ${level.padEnd(5)} [${source}] ${msg}\n`;
   fs.appendFileSync(logPath, line);
+}
+
+function printToTerminal(level: string, source: string, msg: string): void {
+  const timestamp = new Date().toISOString().slice(11, 19); // HH:MM:SS
+  const levelColor =
+    level === 'ERROR' ? colors.red : level === 'WARN' ? colors.yellow : colors.cyan;
+  const line = `${colors.dim}${timestamp}${colors.reset} ${levelColor}[${source}]${colors.reset} ${msg}`;
+  // Use process.stdout.write to bypass any buffering
+  process.stdout.write(line + '\n');
 }
 
 function createPlugin(): Plugin {
@@ -44,9 +64,12 @@ function createPlugin(): Plugin {
           req.on('end', () => {
             try {
               const { level, source, message } = JSON.parse(body);
-              // eslint-disable-next-line no-console
-              console.log(`[DebugLogger] ${level} [${source}] ${message}`);
-              writeLog(level || 'LOG', source || 'browser', message);
+              const lvl = level || 'LOG';
+              const src = source || 'browser';
+              // Print to terminal with colors
+              printToTerminal(lvl, src, message);
+              // Also write to debug.log file
+              writeLog(lvl, src, message);
             } catch {
               /* ignore parse errors */
             }
