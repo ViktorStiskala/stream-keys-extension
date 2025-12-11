@@ -42,7 +42,7 @@ const BUILD_FILES = [
 ];
 
 describe('Production Build', () => {
-  describe.each(BUILD_FILES)('$name debug code exclusion', ({ name, path }) => {
+  describe.each(BUILD_FILES)('$name debug code exclusion', ({ path }) => {
     let content: string;
     let fileExists: boolean;
 

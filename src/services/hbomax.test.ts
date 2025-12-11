@@ -61,9 +61,7 @@ describe('HboMaxHandler', () => {
       it('excludes the first button (Off option)', () => {
         // The first button in the track selector is always the "Off" option
         // Verify that getAvailable() excludes it by checking the count
-        const allButtons = document.querySelectorAll(
-          '[data-testid="player-ux-text-track-button"]'
-        );
+        const allButtons = document.querySelectorAll('[data-testid="player-ux-text-track-button"]');
         const available = HboMaxHandler._test.subtitles.getAvailable();
 
         // Available count should be one less than total buttons (Off excluded)

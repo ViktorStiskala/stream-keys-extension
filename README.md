@@ -113,7 +113,7 @@ The dialog shows:
 
 ```bash
 npm install   # Install dependencies
-npm run build # Production build to build/chrome/extension/
+npm run build # Production build to build/production/chrome/extension/
 npm run dev   # Watch mode for development (build/dev/chrome/extension/)
 ```
 

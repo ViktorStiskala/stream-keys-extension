@@ -109,7 +109,10 @@ function handleNavigationComplete(details: WebNavigation.OnCompletedDetailsType)
   }
 
   injectedTabs.set(details.tabId, handler.handlerFile);
-  injectHandler(details.tabId, handler.handlerFile);
+  injectHandler(details.tabId, handler.handlerFile).catch(() => {
+    // Injection failed, allow retry
+    injectedTabs.delete(details.tabId);
+  });
 }
 
 /**
