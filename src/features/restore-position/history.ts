@@ -12,6 +12,10 @@ export const SEEK_DEBOUNCE_MS = 5000;
 const STABLE_TIME_SCHEDULE_INTERVAL_MS = 200;
 // Delay before a captured value becomes "stable" (guarantees pre-seek value)
 const STABLE_TIME_DELAY_MS = 500;
+// Delay before capturing load time position (allows player auto-resume to complete)
+export const LOAD_TIME_CAPTURE_DELAY_MS = 1000;
+// Delay after load time capture before tracking seeks (avoids capturing initial seeks)
+export const READY_FOR_TRACKING_DELAY_MS = 500;
 
 // State
 export interface PositionHistoryState {
@@ -210,8 +214,8 @@ function setupVideoTracking(
             video._streamKeysReadyForTracking = true;
             console.info('[StreamKeys] Ready to track seeks');
           }
-        }, 500);
-      }, 1000);
+        }, READY_FOR_TRACKING_DELAY_MS);
+      }, LOAD_TIME_CAPTURE_DELAY_MS);
     }
   };
 

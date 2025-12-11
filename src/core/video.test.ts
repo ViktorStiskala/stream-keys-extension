@@ -3,12 +3,24 @@ import { Video } from './video';
 import type { StreamKeysVideoElement } from '@/types';
 
 describe('Video', () => {
+  /**
+   * Tests for createGetter and video element augmentation.
+   *
+   * These tests use Object.defineProperty to override video properties because:
+   * 1. jsdom's HTMLVideoElement doesn't support real media playback
+   * 2. Properties like currentTime and duration are read-only in jsdom without playback
+   * 3. We need predictable values to test the augmentation logic
+   *
+   * This is a necessary synthetic approach - without it, we cannot test how the
+   * extension handles different currentTime/duration combinations.
+   */
   describe('createGetter', () => {
     let mockVideo: HTMLVideoElement;
 
     beforeEach(() => {
       document.body.innerHTML = '';
       mockVideo = document.createElement('video');
+      // Override read-only properties - jsdom video elements don't have real playback
       Object.defineProperty(mockVideo, 'currentTime', { value: 50, writable: true });
       Object.defineProperty(mockVideo, 'duration', { value: 100, writable: true });
     });
@@ -156,6 +168,37 @@ describe('Video', () => {
       { input: 86399, expected: '23:59:59' },
     ])('formats $input seconds as "$expected"', ({ input, expected }) => {
       expect(Video.formatTime(input)).toBe(expected);
+    });
+
+    describe('edge cases', () => {
+      // Document behavior for edge case inputs
+      // These test current behavior - modify if behavior should change
+
+      it('handles very large values (100+ hours)', () => {
+        // 360000 seconds = 100 hours
+        expect(Video.formatTime(360000)).toBe('100:00:00');
+      });
+
+      it('handles negative values by producing negative components', () => {
+        // Current behavior: negative numbers produce negative time components
+        // This documents current behavior - caller should validate input
+        const result = Video.formatTime(-10);
+        expect(result).toContain('-');
+      });
+
+      it('handles NaN by producing NaN components', () => {
+        // Current behavior: NaN produces NaN in output
+        // This documents current behavior - caller should validate input
+        const result = Video.formatTime(NaN);
+        expect(result).toContain('NaN');
+      });
+
+      it('handles Infinity by producing Infinity components', () => {
+        // Current behavior: Infinity produces Infinity in output
+        // This documents current behavior - caller should validate input
+        const result = Video.formatTime(Infinity);
+        expect(result).toContain('Infinity');
+      });
     });
   });
 

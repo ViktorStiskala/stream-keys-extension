@@ -13,7 +13,13 @@ import {
   type MockVideoElement,
 } from '@test';
 import { RestorePosition, type RestorePositionAPI } from './index';
-import { PositionHistory, SEEK_MIN_DIFF_SECONDS, SEEK_DEBOUNCE_MS } from './history';
+import {
+  PositionHistory,
+  SEEK_MIN_DIFF_SECONDS,
+  SEEK_DEBOUNCE_MS,
+  LOAD_TIME_CAPTURE_DELAY_MS,
+  READY_FOR_TRACKING_DELAY_MS,
+} from './history';
 import { DIALOG_ID, CURRENT_TIME_ID, RELATIVE_TIME_CLASS, RestoreDialog } from './dialog';
 import { Video } from '@/core/video';
 import type { StreamKeysVideoElement } from '@/types';
@@ -25,10 +31,6 @@ vi.mock('@/core/settings', () => ({
     getSubtitlePreferences: vi.fn(() => ['English']),
   },
 }));
-
-// Timing constants from history.ts (not exported, so we mirror them here)
-const LOAD_TIME_CAPTURE_DELAY_MS = 1000;
-const READY_FOR_TRACKING_DELAY_MS = 500;
 
 describe('Restore Position Integration', () => {
   let video: MockVideoElement;
@@ -65,7 +67,16 @@ describe('Restore Position Integration', () => {
   });
 
   /**
-   * Helper to initialize RestorePosition and wait for ready state
+   * Helper to initialize RestorePosition and wait for ready state.
+   *
+   * NOTE: Some manual state setup is required because:
+   * 1. jsdom's RAF implementation doesn't properly advance with vi.advanceTimers
+   * 2. The real code uses RAF to update _streamKeysStableTime and _streamKeysLastKnownTime
+   *
+   * The timers DO correctly set _streamKeysReadyForTracking through the real
+   * captureLoadTimeOnce() code path - we just need to advance timers sufficiently.
+   *
+   * The stable/lastKnown times must be set manually because RAF doesn't work in jsdom.
    */
   async function initAndWaitForReady(): Promise<void> {
     restorePositionAPI = RestorePosition.init({ getVideoElement });
@@ -74,16 +85,17 @@ describe('Restore Position Integration', () => {
     const resumePosition = SEEK_MIN_DIFF_SECONDS + 100; // e.g., 115 seconds (1:55)
     simulateVideoLoad(video, resumePosition);
 
-    // Wait for load time capture (1000ms) + readyForTracking (500ms)
+    // Wait for load time capture + readyForTracking delays
+    // This advances real timers that set _streamKeysReadyForTracking via captureLoadTimeOnce()
     vi.advanceTimersByTime(LOAD_TIME_CAPTURE_DELAY_MS + READY_FOR_TRACKING_DELAY_MS + 100);
 
-    // Ensure video element has stable time set (normally done by RAF loop)
+    // Manual setup required: jsdom doesn't properly support requestAnimationFrame
+    // In production, the RAF loop in setupVideoTracking() updates these values every frame.
+    // We must set them manually to simulate the RAF loop's behavior.
     const augmentedVideo = getVideoElement() as StreamKeysVideoElement;
     if (augmentedVideo) {
       augmentedVideo._streamKeysStableTime = augmentedVideo.currentTime;
       augmentedVideo._streamKeysLastKnownTime = augmentedVideo.currentTime;
-      // Ensure readyForTracking flag is set (normally set by setTimeout in captureLoadTimeOnce)
-      augmentedVideo._streamKeysReadyForTracking = true;
     }
   }
 
