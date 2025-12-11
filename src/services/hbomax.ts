@@ -1,7 +1,7 @@
 // HBO Max handler - service-specific configuration
 
 import { Handler } from '@/handlers';
-import { Debug } from '@/core/debug';
+import { Debug, Guard } from '@/core';
 import type { SubtitleItem } from '@/types';
 
 // __DEV__ is defined by vite config based on isDebugMode
@@ -12,19 +12,8 @@ if (__DEV__) {
   Debug.initConsoleForward();
 }
 
-// Guard attribute - uses HTML element attribute for atomic check-and-set
-const GUARD_ATTR = 'data-streamkeys-hbomax';
-
-function shouldSkipInit(): boolean {
-  // Use HTML attribute as guard - atomic check across script contexts
-  const html = document.documentElement;
-  const hasGuard = html.hasAttribute(GUARD_ATTR);
-  if (hasGuard) {
-    return true;
-  }
-  html.setAttribute(GUARD_ATTR, '1');
-  return false;
-}
+// Initialization guard to prevent double execution
+const shouldSkipInit = Guard.create('hbomax');
 
 /**
  * Get a button with primary and fallback selectors

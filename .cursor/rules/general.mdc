@@ -193,6 +193,37 @@ createHandler({
 
 ## Debug Logging
 
+### Accessing Debug Logs (For AI/Cursor Debugging)
+
+**When debugging issues with the extension running in dev mode (`npm run dev`), read the debug log file:**
+
+```
+.cursor/debug.log
+```
+
+This file contains all `console.log/warn/error` output from the extension running in the browser. It's automatically updated in real-time when dev mode is active.
+
+**Use this when:**
+- User reports runtime behavior issues
+- Need to trace execution flow
+- Debugging timing or state issues
+- Checking if code paths are being executed
+
+**Interactive debugging workflow:**
+1. Ask user to run `npm run dev` (or `npm run dev:firefox`)
+2. Ask user to reproduce the issue (e.g., "seek to a position, then rapidly click forward")
+3. Ask user to confirm when done
+4. Read `.cursor/debug.log` to see the execution trace and identify the issue
+
+**Example log output:**
+```
+[StreamKeys] HBO Max extension loaded at 2025-12-11T01:37:39.848Z
+[StreamKeys] Video seek listener added
+[StreamKeys] Load time position captured: 52:46
+[StreamKeys] Ready to track seeks
+[StreamKeys] Seek position saved: 55:08
+```
+
 ### Console Forwarding for Dev Mode
 
 **All service handlers in `src/services/` MUST initialize console forwarding at the top of the file:**

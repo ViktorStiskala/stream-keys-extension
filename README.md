@@ -2,9 +2,20 @@
 
 # Stream Keys
 
-A browser extension that brings YouTube-style keyboard shortcuts to streaming services. Fixes broken spacebar behavior, adds quick subtitle toggling, and lets you jump back to previous positions.
+Stream Keys makes keyboard shortcuts work reliably on Disney+ and HBO Max. It fixes broken spacebar behavior, keeps shortcuts working after fullscreen, adds quick subtitle toggling, and lets you jump back to previous positions.
 
 ![hero_banner](./assets/hero_banner.png)
+
+## Why Stream Keys?
+
+Default keyboard behavior on streaming services is often frustrating:
+
+- Spacebar activates whichever button happens to be focused instead of play/pause (for example, a fast-forward button or a "Start from beginning" button that restarts the whole movie).
+- After exiting fullscreen, keyboard shortcuts often stop working until you click the page again, which can also pause or seek the video.
+- There's no quick, consistent way to toggle subtitles or switch to your preferred language.
+- If you overshoot with a seek or skip, there's no easy way to jump back to where you were.
+
+Stream Keys adds a reliable layer of keyboard handling on top of the player, so your shortcuts always do what you expect.
 
 ## Supported Services
 
@@ -14,7 +25,7 @@ A browser extension that brings YouTube-style keyboard shortcuts to streaming se
 
 - **HBO Max**
   - Fixes unreliable `Space` behavior and adds `C` for subtitles and `F` for fullscreen.
-  - The HBO Max player already supports Left/Right arrow keys for skipping.
+  - Keeps the built-in Left/Right arrow skipping and makes shortcuts continue working in and after fullscreen without needing to click the player again.
 
 ## Features
 
@@ -26,17 +37,7 @@ A browser extension that brings YouTube-style keyboard shortcuts to streaming se
 - **Position Restore** (`R`) - Jump back to previous positions in the video
 - **Rewind/Forward** (`←`/`→`) - Skip backward or forward (Disney+)
 - **No Focus Outline** - Removes the distracting blue focus ring (Disney+)
-- **Works in Fullscreen** - All shortcuts work reliably in fullscreen mode
-
-### Why This Extension?
-
-Default keyboard behavior on streaming services is often frustrating:
-- Spacebar activates focused buttons instead of play/pause
-- Keyboard stops working after exiting fullscreen (until you click the video)
-- No quick way to toggle subtitles
-- Accidentally seeking too far with no easy way back
-
-This extension intercepts keyboard events and routes them correctly, so shortcuts work consistently.
+- **Works in Fullscreen** - All shortcuts work reliably in fullscreen mode, including after you exit fullscreen
 
 ## Keyboard Shortcuts
 

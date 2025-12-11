@@ -72,6 +72,31 @@ function savePositionToHistory(state: PositionHistoryState, time: number): boole
 }
 
 /**
+ * Try to save position with debouncing.
+ * If within debounce window, extends the window and skips saving.
+ * If outside debounce window, attempts to save and starts new window if successful.
+ * @returns true if debounced (skipped), false if save was attempted
+ */
+function debouncedSavePosition(state: PositionHistoryState, time: number): boolean {
+  const now = Date.now();
+  const isWithinDebounceWindow = now - state.lastSeekTime <= SEEK_DEBOUNCE_MS;
+
+  if (isWithinDebounceWindow) {
+    // Extend debounce window while actively seeking
+    state.lastSeekTime = now;
+    return true; // debounced
+  }
+
+  // Try to save
+  const saved = savePositionToHistory(state, time);
+  // Only start debounce window if we actually saved
+  if (saved) {
+    state.lastSeekTime = now;
+  }
+  return false; // not debounced (save attempted)
+}
+
+/**
  * Record position before a seek (with debouncing for keyboard seeks)
  */
 function recordPositionBeforeSeek(
@@ -81,22 +106,7 @@ function recordPositionBeforeSeek(
   if (!Settings.isPositionHistoryEnabled()) return;
   if (preSeekTime === undefined || preSeekTime === null) return;
 
-  const now = Date.now();
-  const isWithinDebounceWindow = now - state.lastSeekTime <= SEEK_DEBOUNCE_MS;
-
-  // If this is a new seek sequence (more than SEEK_DEBOUNCE_MS since last seek)
-  // Save the position immediately so it's available in the restore dialog
-  if (!isWithinDebounceWindow) {
-    const saved = savePositionToHistory(state, preSeekTime);
-    // Only start debounce window if we actually saved
-    // (if blocked due to position constraints, allow next seek to try again)
-    if (saved) {
-      state.lastSeekTime = now;
-    }
-  } else {
-    // Within debounce window - extend it to keep blocking rapid seeks
-    state.lastSeekTime = now;
-  }
+  debouncedSavePosition(state, preSeekTime);
 }
 
 /**
@@ -170,22 +180,8 @@ function setupVideoTracking(
         return;
       }
 
-      // Apply debouncing for UI seeks - prevents rapid saves
-      const now = Date.now();
-      const isWithinDebounceWindow = now - state.lastSeekTime <= SEEK_DEBOUNCE_MS;
-
-      if (isWithinDebounceWindow) {
-        // Extend debounce window while actively seeking
-        state.lastSeekTime = now;
-        return;
-      }
-
-      // UI buttons and timeline clicks: save using stable time
-      const saved = savePositionToHistory(state, stableTime);
-      // Only start debounce window if we actually saved
-      if (saved) {
-        state.lastSeekTime = now;
-      }
+      // UI buttons and timeline clicks: save using stable time with debouncing
+      debouncedSavePosition(state, stableTime);
     }
   };
 

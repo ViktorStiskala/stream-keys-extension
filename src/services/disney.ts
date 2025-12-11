@@ -1,7 +1,7 @@
 // Disney+ handler - service-specific configuration
 
 import { Handler } from '@/handlers';
-import { Debug } from '@/core/debug';
+import { Debug, Guard } from '@/core';
 import type { SubtitleItem } from '@/types';
 
 // __DEV__ is defined by vite config based on isDebugMode
@@ -12,18 +12,8 @@ if (__DEV__) {
   Debug.initConsoleForward();
 }
 
-// Guard attribute - uses HTML element attribute for atomic check-and-set
-const GUARD_ATTR = 'data-streamkeys-disney';
-
-function shouldSkipInit(): boolean {
-  // Use HTML attribute as guard - atomic check across script contexts
-  const html = document.documentElement;
-  if (html.hasAttribute(GUARD_ATTR)) {
-    return true;
-  }
-  html.setAttribute(GUARD_ATTR, '1');
-  return false;
-}
+// Initialization guard to prevent double execution
+const shouldSkipInit = Guard.create('disney');
 
 /**
  * Get a button from Disney+'s Shadow DOM
@@ -67,22 +57,22 @@ function getDisneyVideo(): HTMLVideoElement | null {
 // Cache for Disney progress bar element
 let disneyProgressBarCache: { element: Element | null; lastCheck: number } | null = null;
 const DISNEY_CACHE_TTL = 5000; // Re-check every 5 seconds
-let disneyTimeLoggedOnce = false;
+let disneyProgressBarLoggedOnce = false;
 
 /**
- * Get Disney+ actual playback time from progress bar.
- * Disney+ uses MediaSource Extensions where video.currentTime is buffer-relative,
- * not actual content position. The real time is in the progress bar's aria-valuenow.
+ * Get a value from Disney+'s progress bar aria attribute.
+ * Disney+ uses MediaSource Extensions where video.currentTime/duration are buffer-relative.
+ * The real values are in the progress bar's aria-valuenow (time) and aria-valuemax (duration).
  */
-function getDisneyPlaybackTime(): number | null {
+function getDisneyAriaValue(attribute: 'aria-valuenow' | 'aria-valuemax'): number | null {
   const now = Date.now();
 
-  // Helper to get time from progress bar thumb
-  const getTimeFromThumb = (thumb: Element | null): number | null => {
+  // Helper to get value from progress bar thumb
+  const getValueFromThumb = (thumb: Element | null): number | null => {
     if (!thumb) return null;
-    const valueNow = thumb.getAttribute('aria-valuenow');
-    if (valueNow) {
-      const seconds = parseInt(valueNow, 10);
+    const value = thumb.getAttribute(attribute);
+    if (value) {
+      const seconds = parseInt(value, 10);
       if (!isNaN(seconds) && seconds >= 0) {
         return seconds;
       }
@@ -92,9 +82,9 @@ function getDisneyPlaybackTime(): number | null {
 
   // Try to use cached element first
   if (disneyProgressBarCache && now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL) {
-    const time = getTimeFromThumb(disneyProgressBarCache.element);
-    if (time !== null) {
-      return time;
+    const value = getValueFromThumb(disneyProgressBarCache.element);
+    if (value !== null) {
+      return value;
     }
   }
 
@@ -102,15 +92,15 @@ function getDisneyPlaybackTime(): number | null {
   const progressBar = document.querySelector('progress-bar');
   if (progressBar?.shadowRoot) {
     const thumb = progressBar.shadowRoot.querySelector('.progress-bar__thumb');
-    const time = getTimeFromThumb(thumb);
-    if (time !== null) {
+    const value = getValueFromThumb(thumb);
+    if (value !== null) {
       // Cache the thumb element
       disneyProgressBarCache = { element: thumb, lastCheck: now };
-      if (!disneyTimeLoggedOnce) {
-        disneyTimeLoggedOnce = true;
-        console.info('[StreamKeys] Found Disney progress bar (aria-valuenow)');
+      if (!disneyProgressBarLoggedOnce) {
+        disneyProgressBarLoggedOnce = true;
+        console.info('[StreamKeys] Found Disney progress bar');
       }
-      return time;
+      return value;
     }
   }
 
@@ -120,49 +110,17 @@ function getDisneyPlaybackTime(): number | null {
 }
 
 /**
+ * Get Disney+ actual playback time from progress bar.
+ */
+function getDisneyPlaybackTime(): number | null {
+  return getDisneyAriaValue('aria-valuenow');
+}
+
+/**
  * Get Disney+ actual video duration from progress bar.
- * Disney+ uses MediaSource Extensions where video.duration is buffer-relative,
- * not actual content duration. The real duration is in the progress bar's aria-valuemax.
  */
 function getDisneyDuration(): number | null {
-  const now = Date.now();
-
-  // Helper to get duration from progress bar thumb
-  const getDurationFromThumb = (thumb: Element | null): number | null => {
-    if (!thumb) return null;
-    const valueMax = thumb.getAttribute('aria-valuemax');
-    if (valueMax) {
-      const seconds = parseInt(valueMax, 10);
-      if (!isNaN(seconds) && seconds >= 0) {
-        return seconds;
-      }
-    }
-    return null;
-  };
-
-  // Try to use cached element first
-  if (disneyProgressBarCache && now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL) {
-    const duration = getDurationFromThumb(disneyProgressBarCache.element);
-    if (duration !== null) {
-      return duration;
-    }
-  }
-
-  // Find progress-bar element and access its shadow DOM
-  const progressBar = document.querySelector('progress-bar');
-  if (progressBar?.shadowRoot) {
-    const thumb = progressBar.shadowRoot.querySelector('.progress-bar__thumb');
-    const duration = getDurationFromThumb(thumb);
-    if (duration !== null) {
-      // Cache the thumb element (also used by playback time)
-      disneyProgressBarCache = { element: thumb, lastCheck: now };
-      return duration;
-    }
-  }
-
-  // Update cache to indicate we didn't find it
-  disneyProgressBarCache = { element: null, lastCheck: now };
-  return null;
+  return getDisneyAriaValue('aria-valuemax');
 }
 
 // Subtitle config (extracted for testing)
@@ -208,7 +166,7 @@ const subtitleConfig = {
 /** Reset cache - for testing */
 function resetCache(): void {
   disneyProgressBarCache = null;
-  disneyTimeLoggedOnce = false;
+  disneyProgressBarLoggedOnce = false;
 }
 
 /**
