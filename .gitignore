@@ -1,1 +1,5 @@
 build/
+node_modules/
+.chrome-profile/
+.firefox-profile/
+.cursor/debug.log

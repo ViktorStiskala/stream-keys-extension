@@ -1,0 +1,22 @@
+Stream Keys makes familiar YouTube-style keyboard shortcuts work reliably on Disney+ and HBO Max.
+Space always toggles play and pause, F toggles fullscreen, C manages subtitles, and R lets you jump back to recent
+positions.
+
+Many streaming sites have frustrating keyboard behavior. Pressing Space while a random button is focused can
+skip forward, restart the movie from the beginning, or trigger the wrong action instead of pausing.
+After you leave fullscreen, keyboard shortcuts often stop working until you click the page again,
+which can also pause or seek the video.
+
+Stream Keys listens for shortcuts at the top level of the page instead of relying on whichever element is focused.
+Your keys keep working consistently in fullscreen and after you exit fullscreen, even when the site UI changes.
+
+Features:
+
+• Space always toggles play and pause, no matter which button is focused
+• F toggles fullscreen and keeps keyboard shortcuts working even after you exit fullscreen
+• C toggles subtitles based on your preferred languages
+• R opens a simple panel with your recent positions so you can quickly jump back if you overshoot a seek
+• Keyboard shortcuts work on both Disney+ and HBO Max
+• Optional position history tracking that you can turn off in the extension settings
+• Settings page to configure preferred subtitle languages
+• Lightweight extension with minimal, unobtrusive UI

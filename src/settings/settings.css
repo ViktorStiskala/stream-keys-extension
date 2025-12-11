@@ -20,7 +20,12 @@
 }
 
 body {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family:
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   color: var(--text-primary);
   min-height: 100vh;
@@ -91,7 +96,9 @@ h2 {
   background: var(--bg-primary);
   color: var(--text-primary);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 #language-input:focus {
@@ -112,7 +119,9 @@ h2 {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
 }
 
 #add-button:hover {
@@ -139,7 +148,10 @@ h2 {
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: 8px;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
   cursor: grab;
 }
 
@@ -194,7 +206,9 @@ h2 {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: color 0.2s, background-color 0.2s;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
 }
 
 .remove-button:hover {
@@ -230,7 +244,10 @@ h2 {
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background-color 0.2s;
 }
 
 .restore-defaults-button:hover {
@@ -286,7 +303,9 @@ h2 {
   height: 20px;
   background: var(--text-secondary);
   border-radius: 50%;
-  transition: transform 0.2s, background-color 0.2s;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
 }
 
 .toggle-input:checked + .toggle-switch {
@@ -301,4 +320,3 @@ h2 {
 .toggle-input:focus + .toggle-switch {
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
 }
-

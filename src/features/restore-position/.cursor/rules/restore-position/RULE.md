@@ -1,0 +1,185 @@
+---
+description: Position Restore Feature - History and Dialog
+globs:
+  - "**/restore-position/**/*.ts"
+---
+
+# Position Restore Feature Notes
+
+## Position History Algorithm
+
+### State Management
+- `positionHistory`: Array of { time, label, savedAt } entries
+- `loadTimePosition`: Position when video first loaded (captured after initial resume)
+- `SEEK_MAX_HISTORY`: Maximum entries to keep (3)
+- `SEEK_MIN_DIFF_SECONDS`: Minimum difference between saved positions (15 seconds)
+
+### Debounce Logic for Seeks
+- `SEEK_DEBOUNCE_MS`: 5 seconds window for grouping rapid seeks
+- Only the position before the FIRST seek in a sequence is saved
+- Both keyboard seeks AND UI/timeline seeks use debouncing via `debouncedSavePosition()`
+- Flag `isKeyboardOrButtonSeek` distinguishes seek sources (keyboard seeks are recorded explicitly, UI seeks are recorded via `seeking` event)
+- Debounce window uses inclusive boundary: `now - lastSeekTime <= SEEK_DEBOUNCE_MS`
+
+### Position Recording Rules
+1. Don't save positions < 15 seconds into video
+2. Don't save if too close to load time position  
+3. Don't save if too close to ANY existing saved position
+4. Blocked saves (due to rules 1-3) do NOT start a debounce window
+
+## Load Time Position Capture
+
+Capture happens on `canplay`, `playing`, or `seeked` events:
+1. Wait 1 second for player to settle
+2. Only capture if position >= 15 seconds
+3. Mark video ready for tracking after 500ms delay (avoids recording initial resume seek)
+
+## Dialog State Management
+
+### Toggle Behavior
+- Pressing R when dialog is open closes it
+- Pressing R when closed opens it
+- ESC key closes dialog and prevents fullscreen exit
+
+### Key Handling in Dialog
+- Number keys 0-3 select corresponding position
+- R or ESC closes dialog
+- Modifier keys (Cmd, Ctrl) pass through for browser shortcuts
+
+### Real-time Updates
+- Current time display updates every 300ms
+- Relative time ("2m 30s ago") updates live
+- Use `tabular-nums` for stable number widths
+
+## Video Time Tracking
+
+### Two-Timestamp System with Delayed Capture
+
+For services like Disney+ where the UI updates before `video.seeking` becomes true, we use a two-timestamp system:
+
+- `_streamKeysLastKnownTime`: Always current, updated every RAF frame
+- `_streamKeysStableTime`: Delayed by ~500ms, guaranteed to be pre-seek value
+
+The stable time is updated using delayed capture with `setTimeout`:
+```typescript
+const track = () => {
+  const newTime = getActualPlaybackTime(currentVideo);
+  currentVideo._streamKeysLastKnownTime = newTime;
+
+  // Schedule stable time update with captured value (every ~200ms)
+  if (now - lastStableSchedule >= STABLE_TIME_SCHEDULE_INTERVAL_MS) {
+    const capturedTime = newTime; // Frozen at this moment
+    setTimeout(() => {
+      currentVideo._streamKeysStableTime = capturedTime; // Used 500ms later
+    }, STABLE_TIME_DELAY_MS);
+    lastStableSchedule = now;
+  }
+  requestAnimationFrame(track);
+};
+```
+
+The key insight: the value passed to `setTimeout` is captured at scheduling time, not read when the timeout fires. This eliminates race conditions where the UI updates before `video.seeking` becomes true.
+
+After seek completes (`seeked` event), both times are synced to the current position.
+
+### Getting Pre-Seek Position
+
+Use `_streamKeysGetStableTime()` method which provides consistent fallback:
+```typescript
+video._streamKeysGetStableTime = () => {
+  return video._streamKeysStableTime ??
+         video._streamKeysLastKnownTime ??
+         video._streamKeysGetPlaybackTime?.() ??
+         video.currentTime;
+};
+```
+
+This method is used by both keyboard seeks and timeline/UI seeks for consistent behavior.
+
+### Video Element Properties
+
+- `_streamKeysLastKnownTime`: Current position (updated every frame)
+- `_streamKeysStableTime`: Delayed position (~500ms behind, pre-seek safe)
+- `_streamKeysGetPlaybackTime()`: Returns actual playback time (uses custom logic for services like Disney+)
+- `_streamKeysGetStableTime()`: Returns stable time with fallback chain
+- `_streamKeysSeekListenerAdded`: Prevents duplicate listeners
+- `_streamKeysReadyForTracking`: True after initial load complete
+
+## Testing
+
+### Test File Location
+
+Tests are co-located at `src/features/restore-position/history.test.ts`.
+
+### Exported Constants and Helpers
+
+The following are exported for use in tests:
+```typescript
+import {
+  PositionHistory,
+  SEEK_MAX_HISTORY,      // 3 - max entries in history
+  SEEK_MIN_DIFF_SECONDS, // 15 - min seconds between positions
+  SEEK_DEBOUNCE_MS       // 5000 - debounce window for rapid seeks
+} from './history';
+
+// Public API methods:
+// - PositionHistory.save(state, time) - direct save, no debounce
+// - PositionHistory.record(state, time) - save with debounce
+// - PositionHistory.debouncedSave(state, time) - returns true if debounced, false if save attempted
+```
+
+### Testing Pattern
+
+**Always use exported constants instead of hardcoded values:**
+```typescript
+// ✅ CORRECT: Use constants
+it('does NOT save position below threshold', () => {
+  PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS - 5);
+  expect(state.positionHistory).toHaveLength(0);
+});
+
+// ❌ WRONG: Hardcoded value
+it('does NOT save position below threshold', () => {
+  PositionHistory.save(state, 10); // Magic number!
+  expect(state.positionHistory).toHaveLength(0);
+});
+```
+
+### Debounce Test Requirements
+
+**When testing debounce logic, positions MUST exceed SEEK_MIN_DIFF_SECONDS to avoid false positives:**
+```typescript
+// ✅ CORRECT: Explicit position calculation ensures we test debounce, not proximity
+const position1 = SEEK_MIN_DIFF_SECONDS + 100;
+const position2 = position1 + SEEK_MIN_DIFF_SECONDS + 100;
+expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+// ❌ WRONG: Positions might be blocked by proximity, not debounce
+const position1 = 100;
+const position2 = 110; // Only 10s apart - blocked by proximity!
+```
+
+### Time-based Test Guidelines
+
+**Use relative time comparisons, not absolute values:**
+```typescript
+// ✅ CORRECT: Relative comparison
+const timeAfterFirstSave = state.lastSeekTime;
+vi.advanceTimersByTime(2000);
+PositionHistory.record(state, position2);
+expect(state.lastSeekTime).toBe(timeAfterFirstSave + 2000);
+
+// ❌ WRONG: Assumes specific starting time
+expect(state.lastSeekTime).toBe(0);
+```
+
+### Mock Requirements
+
+The tests mock `@/core/settings`:
+```typescript
+vi.mock('@/core/settings', () => ({
+  Settings: {
+    isPositionHistoryEnabled: vi.fn(() => true),
+  },
+}));
+```

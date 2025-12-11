@@ -2,9 +2,20 @@
 
 # Stream Keys
 
-A Chrome extension that improves keyboard controls on streaming services by fixing spacebar behavior, adding reliable keyboard shortcuts, and providing quick subtitle toggling.
+A browser extension that brings YouTube-style keyboard shortcuts to streaming services. Fixes broken spacebar behavior, adds quick subtitle toggling, and lets you jump back to previous positions.
 
 ![hero_banner](./assets/hero_banner.png)
+
+## Why Stream Keys?
+
+Default keyboard behavior on streaming services is often frustrating:
+
+- Spacebar activates whichever button happens to be focused instead of play/pause (for example, a fast-forward button or a "Start from beginning" button that restarts the whole movie).
+- After exiting fullscreen, keyboard shortcuts often stop working until you click the page again, which can also pause or seek the video.
+- There's no quick, consistent way to toggle subtitles or switch to your preferred language.
+- If you overshoot with a seek or skip, there's no easy way to jump back to where you were.
+
+Stream Keys adds a reliable layer of keyboard handling on top of the player, so your shortcuts always do what you expect.
 
 ## Supported Services
 
@@ -18,13 +29,27 @@ A Chrome extension that improves keyboard controls on streaming services by fixi
 
 ## Features
 
-> The Extension mimics basic keyboard shortcuts known from YouTube.
+> YouTube-style keyboard shortcuts for streaming services.
 
-- **Spacebar Play/Pause** - Press `Space` to toggle play/pause anywhere on the page, regardless of which element has focus
-- **Fullscreen Toggle** - Press `F` to toggle fullscreen mode
-- **Subtitle Toggle** - Press `C` to quickly enable/disable subtitles based on your language preferences
-- **No Focus Outline** - Removes the distracting blue focus outline from the video player (Disney+)
-- **Works in Fullscreen** - Keyboard shortcuts work reliably in both normal and fullscreen modes
+- **Play/Pause** (`Space`) - Toggle play/pause anywhere on the page, regardless of focus
+- **Fullscreen** (`F`) - Enter or exit fullscreen mode
+- **Subtitles** (`C`) - Quickly toggle subtitles based on your language preferences
+- **Position Restore** (`R`) - Jump back to previous positions in the video
+- **Rewind/Forward** (`←`/`→`) - Skip backward or forward (Disney+)
+- **No Focus Outline** - Removes the distracting blue focus ring (Disney+)
+- **Works in Fullscreen** - All shortcuts work reliably in fullscreen mode, including after you exit fullscreen
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` | Play / Pause |
+| `F` | Toggle fullscreen |
+| `C` | Toggle subtitles |
+| `R` | Open position restore dialog |
+| `←` / `→` | Rewind / Forward (Disney+) |
+| `1-3` | Jump to saved position (when dialog is open) |
+| `Esc` | Close position restore dialog |
 
 ## Subtitle Language Preferences
 
@@ -42,69 +67,64 @@ When you press `C`:
 
 Default preferences: English, English [CC], English CC
 
-## The Problem This Solves
+## Position Restore
 
-Default keyboard behavior on streaming services is often inconsistent:
-- Pressing spacebar when a control button is focused activates that button instead of play/pause
-- After exiting fullscreen, keyboard controls stop working until you click on the video
-- The video player may show an ugly focus outline when focused
-- No quick way to toggle subtitles without navigating through menus
+Press `R` to open a dialog showing your recent positions in the video. This is useful when you accidentally skip too far or want to rewatch a scene.
 
-This extension intercepts keyboard events at the highest level and redirects them to the correct player controls.
+**What gets saved:**
+- The position where the video started (if you resumed from a previous session)
+- Up to 3 positions from before you seeked (clicked the timeline or used arrow keys)
 
-## Installation
+**How to use:**
+1. Press `R` to open the position restore dialog
+2. Press `1`, `2`, or `3` to jump to a saved position, or click on it
+3. Press `R` again or `Esc` to close the dialog
 
-### From Releases
+The dialog shows:
+- Your current position
+- Saved positions with timestamps and how long ago they were saved
+- A progress bar showing where each position is in the video
 
-1. Go to [releases page](https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest) and download the ZIP file.
-2. Extract ZIP to destination folder.
+**Settings:**
+- Position history can be disabled in the extension settings (right-click icon → Options)
+
+## Installation (Google Chrome)
+
+> [!CAUTION]
+> Always carefully review the extension code before installing from unofficial sources. For automated security reviews, use an official extension store instead.
+
+1. Go to [releases page](https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest) and download the ZIP archive for your browser.
+2. Choose a permanent location and extract the ZIP there. The extension loads directly from this folder, so it must not be removed.
 3. Open Chrome and navigate to `chrome://extensions/`
-4. Enable "Developer mode" in the top right
-5. Click "Load unpacked" and select the extension folder
-
-### From Source
-
-1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension folder
-
-### Building
-
-```bash
-make build    # Creates build/stream-keys.zip
-make clean    # Removes build directory
-```
-
-## How It Works
-
-### Architecture
-
-The extension uses a base handler (`handlers/base.js`) with shared functionality, and service-specific handlers that provide configuration for each streaming service.
-
-### Keyboard Event Capture
-
-The extension uses `window.addEventListener('keydown', handler, true)` with the capture phase to intercept keyboard events before the streaming service's own handlers can process them.
-
-### Service-Specific Handlers
-
-- **Disney+**: Player controls are inside Shadow DOM elements, accessed via `element.shadowRoot.querySelector()`
-- **HBO Max**: Uses standard DOM with `data-testid` attributes and class-based fallback selectors
-
-### Settings Injection
-
-Settings are stored in `chrome.storage.sync` and injected into page context as `window.__streamKeysSettings` before handlers are loaded.
-
-### Fullscreen Focus Workaround
-
-After exiting fullscreen, browsers require a real user click before routing keyboard events to the page (this is a security feature). The extension works around this by creating an invisible overlay that captures the first click, then removes itself - restoring keyboard functionality without affecting video playback.
+4. Enable "Developer mode" in the top right.
+5. Click "Load unpacked" and select the extension folder.
 
 ## Permissions
 
 - `webNavigation` - To detect when pages finish loading
 - `scripting` - To inject the keyboard handler scripts
-- `storage` - To save subtitle language preferences
+- `storage` - To save your preferences
 - `host_permissions` - To run on supported streaming service domains
+
+## For Developers
+
+<details>
+<summary>Building from source</summary>
+
+```bash
+npm install   # Install dependencies
+npm run build # Production build to build/production/chrome/extension/
+npm run dev   # Watch mode for development (build/dev/chrome/extension/)
+```
+
+**Available commands:**
+- `npm run check` - Run all checks (typecheck + lint + format)
+- `npm test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+
+**Architecture:** Built with TypeScript and Vite. Service-specific handlers in `src/services/`, composable features in `src/features/`, core utilities in `src/core/`.
+
+</details>
 
 ## License
 
