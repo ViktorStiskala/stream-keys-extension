@@ -176,12 +176,13 @@ createHandler({
 
 ## Settings & Storage
 
-- Settings stored in `chrome.storage.sync` under keys:
+- Settings stored in `browser.storage.sync` under keys:
   - `subtitleLanguages`: string[]
   - `positionHistoryEnabled`: boolean
 - Default languages: `['English', 'English [CC]', 'English CC']`
 - Settings injected as `window.__streamKeysSettings` before handlers load
 - Access in handlers via `window.__streamKeysSettings`
+- Uses `webextension-polyfill` for cross-browser compatibility
 
 ## TypeScript Conventions
 
@@ -244,15 +245,26 @@ When `__DEV__` is `false`, Vite + terser removes the entire `if` block including
 
 ## Build Commands
 
-- `npm run dev` - Watch mode for development
-- `npm run build` - Production build (Chrome)
-- `npm run build:firefox` - Firefox build (future)
+- `npm run dev` - Watch mode for development (Chrome by default)
+- `npm run build` - Production build (Chrome by default)
+- `npm run build:firefox` - Firefox build
+- `BROWSER=firefox npm run dev` - Firefox dev mode
 - `npm run typecheck` - Type checking without emit
 - `npm run lint` - Run ESLint
 - `npm run lint:fix` - Run ESLint with auto-fix
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check formatting without changes
 - `npm run check` - Run all checks (typecheck + lint + format)
+
+### Multi-Browser Builds
+
+Set `BROWSER` environment variable to target different browsers:
+- `chrome` (default) - Chromium-based browsers (Chrome, Edge, Brave)
+- `firefox` - Firefox desktop
+
+Output directories:
+- Dev: `build/dev/{browser}/extension`
+- Prod: `build/{browser}/extension`
 
 ## Testing
 

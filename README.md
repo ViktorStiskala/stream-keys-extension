@@ -2,7 +2,7 @@
 
 # Stream Keys
 
-A Chrome extension that brings YouTube-style keyboard shortcuts to streaming services. Fixes broken spacebar behavior, adds quick subtitle toggling, and lets you jump back to previous positions.
+A browser extension that brings YouTube-style keyboard shortcuts to streaming services. Fixes broken spacebar behavior, adds quick subtitle toggling, and lets you jump back to previous positions.
 
 ![hero_banner](./assets/hero_banner.png)
 

@@ -1,5 +1,7 @@
 // Settings page - manages subtitle language preferences and position history
 
+import browser from 'webextension-polyfill';
+
 const STORAGE_KEY = 'subtitleLanguages';
 const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
 const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
@@ -19,12 +21,12 @@ let positionHistoryToggle: HTMLInputElement;
  * Load preferences from storage
  */
 async function loadPreferences(): Promise<void> {
-  const result = await chrome.storage.sync.get([STORAGE_KEY, POSITION_HISTORY_KEY]);
-  languages = result[STORAGE_KEY] || [...DEFAULT_LANGUAGES];
+  const result = await browser.storage.sync.get([STORAGE_KEY, POSITION_HISTORY_KEY]);
+  languages = (result[STORAGE_KEY] as string[] | undefined) || [...DEFAULT_LANGUAGES];
 
   const positionHistoryEnabled =
     result[POSITION_HISTORY_KEY] !== undefined
-      ? result[POSITION_HISTORY_KEY]
+      ? (result[POSITION_HISTORY_KEY] as boolean)
       : DEFAULT_POSITION_HISTORY;
   positionHistoryToggle.checked = positionHistoryEnabled;
 
@@ -35,14 +37,14 @@ async function loadPreferences(): Promise<void> {
  * Save preferences to storage
  */
 async function savePreferences(): Promise<void> {
-  await chrome.storage.sync.set({ [STORAGE_KEY]: languages });
+  await browser.storage.sync.set({ [STORAGE_KEY]: languages });
 }
 
 /**
  * Save position history setting
  */
 async function savePositionHistorySetting(): Promise<void> {
-  await chrome.storage.sync.set({ [POSITION_HISTORY_KEY]: positionHistoryToggle.checked });
+  await browser.storage.sync.set({ [POSITION_HISTORY_KEY]: positionHistoryToggle.checked });
 }
 
 /**

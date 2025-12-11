@@ -12,8 +12,14 @@ const isDebugMode =
   process.argv.includes('serve') ||
   process.env.NODE_ENV !== 'production';
 
-// Output directory: dev builds go to build/dev/, production to build/chrome/
-const outDir = isDebugMode ? 'build/dev/chrome/extension' : 'build/chrome/extension';
+// Browser target from environment variable (supports: 'chrome' | 'firefox' | custom string)
+// Default: 'chrome' for Chromium-based browsers (Chrome, Edge, Brave)
+const browser = process.env.BROWSER || 'chrome';
+
+// Output directory structure:
+// - Dev: build/dev/{browser}/extension
+// - Prod: build/{browser}/extension
+const outDir = isDebugMode ? `build/dev/${browser}/extension` : `build/${browser}/extension`;
 
 // Copy logo files to build directory
 function copyLogos() {
@@ -64,9 +70,10 @@ export default defineConfig({
     webExtension({
       manifest: 'src/manifest.json',
       additionalInputs: ['src/services/disney.ts', 'src/services/hbomax.ts'],
+      // Target browser for manifest transformations and web-ext
+      browser,
       // Add web-ext configuration for profile persistence
       webExtConfig: {
-        target: 'chromium',
         // Keep changes to a temporary profile across sessions
         keepProfileChanges: true,
         profileCreateIfMissing: true,
