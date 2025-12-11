@@ -53,6 +53,10 @@ h1 {
   border: 1px solid var(--border);
 }
 
+.setting-section + .setting-section {
+  margin-top: 24px;
+}
+
 h2 {
   font-size: 18px;
   font-weight: 600;
@@ -68,6 +72,19 @@ h2 {
 
 .description strong {
   color: var(--text-primary);
+}
+
+.description kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 var(--border);
 }
 
 .note {
