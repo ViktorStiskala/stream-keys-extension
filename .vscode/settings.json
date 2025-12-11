@@ -1,3 +1,27 @@
 {
-    "makefile.configureOnOpen": true
+    "editor.rulers": [
+        120
+    ],
+    "cursor.composer.shouldAutoAcceptDiffs": true,
+    "makefile.configureOnOpen": true,
+    "json.schemaDownload.enable": true,
+    "cursor.general.globalCursorIgnoreList": [
+        "**/.env",
+        "**/.env.*",
+        "**/credentials.json",
+        "**/credentials.*.json",
+        "**/secret.json",
+        "**/secrets.json",
+        "**/*.key",
+        "**/*.pem",
+        "**/*.pfx",
+        "**/*.p12",
+        "**/*.crt",
+        "**/*.cer",
+        "**/id_rsa",
+        "**/id_dsa",
+        "**/.ssh/id_*",
+        "**/.cursor/mcp.json",
+        "!**/.env.example"
+    ],
 }
