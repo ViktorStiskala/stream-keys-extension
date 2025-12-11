@@ -18,8 +18,8 @@ const browser = process.env.BROWSER || 'chrome';
 
 // Output directory structure:
 // - Dev: build/dev/{browser}/extension
-// - Prod: build/{browser}/extension
-const outDir = isDebugMode ? `build/dev/${browser}/extension` : `build/${browser}/extension`;
+// - Prod: build/production/{browser}/extension
+const outDir = isDebugMode ? `build/dev/${browser}/extension` : `build/production/${browser}/extension`;
 
 // Copy logo files to build directory
 function copyLogos() {

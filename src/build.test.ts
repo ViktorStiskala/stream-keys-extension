@@ -33,11 +33,11 @@ const DEBUG_TOKENS = [
 const BUILD_FILES = [
   {
     name: 'disney.js',
-    path: resolve(__dirname, '../build/chrome/extension/src/services/disney.js'),
+    path: resolve(__dirname, '../build/production/chrome/extension/src/services/disney.js'),
   },
   {
     name: 'background/index.js',
-    path: resolve(__dirname, '../build/chrome/extension/src/background/index.js'),
+    path: resolve(__dirname, '../build/production/chrome/extension/src/background/index.js'),
   },
 ];
 
