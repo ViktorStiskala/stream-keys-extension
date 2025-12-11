@@ -7,8 +7,10 @@ import { Styles } from '@/ui/styles/variables';
 import { DialogStyles } from './styles';
 import { PositionHistory, type PositionHistoryState, type RestorePosition } from './history';
 
-const DIALOG_ID = 'streamkeys-restore-dialog';
-const CURRENT_TIME_ID = 'streamkeys-current-time';
+// Exported for testing
+export const DIALOG_ID = 'streamkeys-restore-dialog';
+export const CURRENT_TIME_ID = 'streamkeys-current-time';
+export const RELATIVE_TIME_CLASS = 'streamkeys-relative-time';
 
 // Dialog state
 let restoreDialog: HTMLDivElement | null = null;
@@ -73,7 +75,7 @@ function createPositionItem(
   // Relative time
   const relativeTime = document.createElement('span');
   if (!pos.isLoadTime) {
-    relativeTime.className = 'streamkeys-relative-time';
+    relativeTime.className = RELATIVE_TIME_CLASS;
     relativeTime.dataset.savedAt = String(pos.relativeText);
   } else {
     relativeTime.textContent = pos.relativeText as string;
@@ -217,7 +219,7 @@ function createRestoreDialog(
       currentTimeEl.textContent = Video.formatTime(displayTime);
     }
 
-    const relativeTimeEls = document.querySelectorAll('.streamkeys-relative-time');
+    const relativeTimeEls = document.querySelectorAll(`.${RELATIVE_TIME_CLASS}`);
     relativeTimeEls.forEach((el) => {
       const savedAt = parseInt((el as HTMLElement).dataset.savedAt || '0', 10);
       if (savedAt) {

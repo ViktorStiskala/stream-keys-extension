@@ -17,14 +17,15 @@ globs:
 ### Debounce Logic for Seeks
 - `SEEK_DEBOUNCE_MS`: 5 seconds window for grouping rapid seeks
 - Only the position before the FIRST seek in a sequence is saved
-- Keyboard/button seeks use debouncing, timeline clicks save immediately
-- Flag `isKeyboardOrButtonSeek` distinguishes seek sources
+- Both keyboard seeks AND UI/timeline seeks use debouncing via `debouncedSavePosition()`
+- Flag `isKeyboardOrButtonSeek` distinguishes seek sources (keyboard seeks are recorded explicitly, UI seeks are recorded via `seeking` event)
+- Debounce window uses inclusive boundary: `now - lastSeekTime <= SEEK_DEBOUNCE_MS`
 
 ### Position Recording Rules
 1. Don't save positions < 15 seconds into video
-2. Don't save if too close to load time position
+2. Don't save if too close to load time position  
 3. Don't save if too close to ANY existing saved position
-4. Timeline clicks bypass debounce logic
+4. Blocked saves (due to rules 1-3) do NOT start a debounce window
 
 ## Load Time Position Capture
 
@@ -110,15 +111,21 @@ This method is used by both keyboard seeks and timeline/UI seeks for consistent 
 
 Tests are co-located at `src/features/restore-position/history.test.ts`.
 
-### Exported Constants
+### Exported Constants and Helpers
 
-The following constants are exported for use in tests:
+The following are exported for use in tests:
 ```typescript
 import {
+  PositionHistory,
   SEEK_MAX_HISTORY,      // 3 - max entries in history
   SEEK_MIN_DIFF_SECONDS, // 15 - min seconds between positions
   SEEK_DEBOUNCE_MS       // 5000 - debounce window for rapid seeks
 } from './history';
+
+// Public API methods:
+// - PositionHistory.save(state, time) - direct save, no debounce
+// - PositionHistory.record(state, time) - save with debounce
+// - PositionHistory.debouncedSave(state, time) - returns true if debounced, false if save attempted
 ```
 
 ### Testing Pattern
@@ -136,6 +143,34 @@ it('does NOT save position below threshold', () => {
   PositionHistory.save(state, 10); // Magic number!
   expect(state.positionHistory).toHaveLength(0);
 });
+```
+
+### Debounce Test Requirements
+
+**When testing debounce logic, positions MUST exceed SEEK_MIN_DIFF_SECONDS to avoid false positives:**
+```typescript
+// ✅ CORRECT: Explicit position calculation ensures we test debounce, not proximity
+const position1 = SEEK_MIN_DIFF_SECONDS + 100;
+const position2 = position1 + SEEK_MIN_DIFF_SECONDS + 100;
+expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+// ❌ WRONG: Positions might be blocked by proximity, not debounce
+const position1 = 100;
+const position2 = 110; // Only 10s apart - blocked by proximity!
+```
+
+### Time-based Test Guidelines
+
+**Use relative time comparisons, not absolute values:**
+```typescript
+// ✅ CORRECT: Relative comparison
+const timeAfterFirstSave = state.lastSeekTime;
+vi.advanceTimersByTime(2000);
+PositionHistory.record(state, position2);
+expect(state.lastSeekTime).toBe(timeAfterFirstSave + 2000);
+
+// ❌ WRONG: Assumes specific starting time
+expect(state.lastSeekTime).toBe(0);
 ```
 
 ### Mock Requirements

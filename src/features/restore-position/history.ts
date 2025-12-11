@@ -295,4 +295,6 @@ export const PositionHistory = {
   record: recordPositionBeforeSeek,
   getPositions: getRestorePositions,
   setupTracking: setupVideoTracking,
+  /** Exposed for testing - save with debounce logic, returns true if debounced */
+  debouncedSave: debouncedSavePosition,
 };

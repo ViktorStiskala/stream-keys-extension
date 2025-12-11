@@ -35,6 +35,142 @@ describe('PositionHistory', () => {
     });
   });
 
+  describe('debouncedSave (return value semantics)', () => {
+    // These tests verify the return value of debouncedSave:
+    // - returns true when debounced (within window, save skipped)
+    // - returns false when save was attempted (outside window)
+
+    const POSITION_OFFSET = 100;
+
+    describe('returns true when debounced', () => {
+      it('returns true for second save within debounce window', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // First save - should return false (not debounced, save attempted)
+        const result1 = PositionHistory.debouncedSave(state, position1);
+        expect(result1).toBe(false);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Second save within window - should return true (debounced)
+        vi.advanceTimersByTime(1000); // Still within 5s window
+        const result2 = PositionHistory.debouncedSave(state, position2);
+        expect(result2).toBe(true);
+        expect(state.positionHistory).toHaveLength(1); // Still just 1
+      });
+
+      it('returns true at exact debounce boundary (<=)', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        PositionHistory.debouncedSave(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // At exactly SEEK_DEBOUNCE_MS, condition is now - lastSeekTime <= SEEK_DEBOUNCE_MS
+        // 5000 - 0 = 5000, 5000 <= 5000 is TRUE
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS);
+        const result = PositionHistory.debouncedSave(state, position2);
+        expect(result).toBe(true); // Still debounced at exact boundary
+      });
+    });
+
+    describe('returns false when save attempted', () => {
+      it('returns false for first save (successful)', () => {
+        const position = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        const result = PositionHistory.debouncedSave(state, position);
+        expect(result).toBe(false);
+        expect(state.positionHistory).toHaveLength(1);
+      });
+
+      it('returns false after debounce window expires (successful save)', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        PositionHistory.debouncedSave(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Past debounce window
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        const result = PositionHistory.debouncedSave(state, position2);
+        expect(result).toBe(false); // Not debounced
+        expect(state.positionHistory).toHaveLength(2); // Both saved
+      });
+
+      it('returns false when save blocked by threshold (not debounced, but blocked)', () => {
+        // Position below SEEK_MIN_DIFF_SECONDS
+        const invalidPosition = SEEK_MIN_DIFF_SECONDS - 1;
+
+        const result = PositionHistory.debouncedSave(state, invalidPosition);
+        expect(result).toBe(false); // Not debounced (save was attempted, just blocked)
+        expect(state.positionHistory).toHaveLength(0); // Not saved
+      });
+
+      it('returns false when save blocked by proximity (not debounced, but blocked)', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const tooClose = position1 + SEEK_MIN_DIFF_SECONDS - 1;
+
+        // First save
+        PositionHistory.debouncedSave(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Wait for debounce to expire
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        // Try to save too-close position
+        const result = PositionHistory.debouncedSave(state, tooClose);
+        expect(result).toBe(false); // Not debounced (save was attempted)
+        expect(state.positionHistory).toHaveLength(1); // But blocked by proximity
+      });
+    });
+
+    describe('debounce window management', () => {
+      it('successful save starts debounce window', () => {
+        const position = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const initialLastSeekTime = state.lastSeekTime;
+
+        PositionHistory.debouncedSave(state, position);
+        // lastSeekTime should be updated (save succeeded)
+        expect(state.lastSeekTime).not.toBe(initialLastSeekTime);
+        expect(state.positionHistory).toHaveLength(1);
+      });
+
+      it('debounced save extends the window', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        PositionHistory.debouncedSave(state, position1);
+        const timeAfterFirstSave = state.lastSeekTime;
+
+        // Advance and save again (debounced)
+        vi.advanceTimersByTime(2000);
+        PositionHistory.debouncedSave(state, position2);
+
+        // Window should be extended (lastSeekTime updated)
+        expect(state.lastSeekTime).toBe(timeAfterFirstSave + 2000);
+        expect(state.positionHistory).toHaveLength(1); // Second save was debounced
+      });
+
+      it('blocked save does NOT start debounce window', () => {
+        const initialLastSeekTime = state.lastSeekTime;
+
+        // Try to save invalid position
+        const invalidPosition = SEEK_MIN_DIFF_SECONDS - 1;
+        PositionHistory.debouncedSave(state, invalidPosition);
+
+        expect(state.lastSeekTime).toBe(initialLastSeekTime); // NOT updated
+        expect(state.positionHistory).toHaveLength(0);
+
+        // A subsequent valid save should work immediately (no debounce active)
+        const validPosition = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const result = PositionHistory.debouncedSave(state, validPosition);
+        expect(result).toBe(false); // Not debounced
+        expect(state.positionHistory).toHaveLength(1);
+      });
+    });
+  });
+
   describe('save', () => {
     describe('position threshold rules', () => {
       it.each([
@@ -142,8 +278,15 @@ describe('PositionHistory', () => {
   });
 
   describe('record (debouncing)', () => {
+    // All debounce tests use positions explicitly calculated to exceed SEEK_MIN_DIFF_SECONDS
+    // This ensures we're testing debounce logic, NOT position proximity blocking
+    const POSITION_OFFSET = 100; // Added to ensure positions > SEEK_MIN_DIFF_SECONDS
+
     it('saves position on first call in a sequence', () => {
-      const position = 100;
+      // Position must exceed SEEK_MIN_DIFF_SECONDS to be valid
+      const position = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+      expect(position).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
       PositionHistory.record(state, position);
 
       expect(state.positionHistory).toHaveLength(1);
@@ -151,8 +294,12 @@ describe('PositionHistory', () => {
     });
 
     it('does NOT save second position within debounce window', () => {
-      const position1 = 100;
-      const position2 = 200;
+      // Positions must be > SEEK_MIN_DIFF_SECONDS apart so we test debounce, not proximity
+      const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+      const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+      // Verify test setup: positions are far enough apart that proximity won't block
+      expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
 
       // First seek
       PositionHistory.record(state, position1);
@@ -161,7 +308,7 @@ describe('PositionHistory', () => {
       // Advance time but stay within debounce window
       vi.advanceTimersByTime(SEEK_DEBOUNCE_MS - 1000);
 
-      // Second seek within debounce window
+      // Second seek within debounce window - blocked by DEBOUNCE, not proximity
       PositionHistory.record(state, position2);
 
       // Should still have only the first position
@@ -170,8 +317,12 @@ describe('PositionHistory', () => {
     });
 
     it('saves second position after debounce window expires', () => {
-      const position1 = 100;
-      const position2 = 200;
+      // Positions must be > SEEK_MIN_DIFF_SECONDS apart so we test debounce, not proximity
+      const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+      const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+      // Verify test setup: positions are far enough apart that proximity won't block
+      expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
 
       // First seek
       PositionHistory.record(state, position1);
@@ -180,7 +331,7 @@ describe('PositionHistory', () => {
       // Advance time past debounce window
       vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1000);
 
-      // Second seek after debounce window
+      // Second seek after debounce window - should save (not blocked by debounce or proximity)
       PositionHistory.record(state, position2);
 
       // Should have both positions
@@ -247,9 +398,14 @@ describe('PositionHistory', () => {
       });
 
       it('extends debounce window with each seek while actively seeking', () => {
-        const position1 = 100;
-        const position2 = 200;
-        const position3 = 300;
+        // Use positions that are explicitly far apart to test debounce, not proximity
+        const position1 = SEEK_MIN_DIFF_SECONDS + 100;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + 100;
+        const position3 = position2 + SEEK_MIN_DIFF_SECONDS + 100;
+
+        // Verify all positions are far enough apart
+        expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+        expect(position3 - position2).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
 
         // First seek
         PositionHistory.record(state, position1);
@@ -281,29 +437,247 @@ describe('PositionHistory', () => {
         // 3. User then seeks rapidly
         // 4. The position they seeked TO should be saved
 
-        // Set load time
-        state.loadTimePosition = 100;
+        // Set load time - must be > SEEK_MIN_DIFF_SECONDS to be a valid load time
+        const loadTime = SEEK_MIN_DIFF_SECONDS + 100;
+        state.loadTimePosition = loadTime;
 
-        // First seek from load time - blocked because position = load time
-        const loadTimeSeek = 100 + SEEK_MIN_DIFF_SECONDS - 5; // Close to load time
+        // First seek from load time - blocked because position is too close to load time
+        const loadTimeSeek = loadTime + SEEK_MIN_DIFF_SECONDS - 5;
         PositionHistory.record(state, loadTimeSeek);
         expect(state.positionHistory).toHaveLength(0);
 
         // User is now at a new position, they seek again
-        // This should save because debounce was NOT started
-        const newPosition = 200;
+        // Position must be far from loadTime to not be blocked by proximity
+        const newPosition = loadTime + SEEK_MIN_DIFF_SECONDS + 100;
+        expect(newPosition - loadTime).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+        // This should save because debounce was NOT started (previous save was blocked)
         PositionHistory.record(state, newPosition);
         expect(state.positionHistory).toHaveLength(1);
         expect(state.positionHistory[0].time).toBe(newPosition);
 
         // Rapid subsequent seeks should be debounced
-        vi.advanceTimersByTime(1000);
-        PositionHistory.record(state, 250);
-        expect(state.positionHistory).toHaveLength(1); // Still just the first valid save
+        // Use positions far enough from newPosition so proximity doesn't block
+        const rapidSeek1 = newPosition + SEEK_MIN_DIFF_SECONDS + 50;
+        const rapidSeek2 = rapidSeek1 + SEEK_MIN_DIFF_SECONDS + 50;
 
         vi.advanceTimersByTime(1000);
-        PositionHistory.record(state, 300);
+        PositionHistory.record(state, rapidSeek1);
+        expect(state.positionHistory).toHaveLength(1); // Debounced, not proximity blocked
+
+        vi.advanceTimersByTime(1000);
+        PositionHistory.record(state, rapidSeek2);
         expect(state.positionHistory).toHaveLength(1); // Still debounced
+      });
+    });
+  });
+
+  describe('race conditions and edge cases', () => {
+    // Use positions explicitly calculated to exceed SEEK_MIN_DIFF_SECONDS
+    const POSITION_OFFSET = 100;
+
+    describe('debounce boundary timing', () => {
+      it('save at exactly SEEK_DEBOUNCE_MS is still debounced (boundary inclusive)', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // Verify positions are far enough apart
+        expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+        // First seek
+        PositionHistory.record(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Advance exactly SEEK_DEBOUNCE_MS (boundary condition)
+        // The condition is: now - lastSeekTime <= SEEK_DEBOUNCE_MS
+        // At exactly SEEK_DEBOUNCE_MS elapsed, the condition is TRUE (debounced)
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS);
+
+        PositionHistory.record(state, position2);
+        // At exactly the boundary, it's still within the window (<=)
+        expect(state.positionHistory).toHaveLength(1);
+      });
+
+      it('save at SEEK_DEBOUNCE_MS + 1 is NOT debounced (just outside window)', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // Verify positions are far enough apart
+        expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+        // First seek
+        PositionHistory.record(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Advance just past debounce window
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        PositionHistory.record(state, position2);
+        // Just outside window - should save
+        expect(state.positionHistory).toHaveLength(2);
+        expect(state.positionHistory[1].time).toBe(position2);
+      });
+
+      it('save at SEEK_DEBOUNCE_MS - 1 is debounced (just inside window)', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // Verify positions are far enough apart
+        expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+        // First seek
+        PositionHistory.record(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Advance just before debounce window expires
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS - 1);
+
+        PositionHistory.record(state, position2);
+        // Just inside window - should be debounced
+        expect(state.positionHistory).toHaveLength(1);
+      });
+    });
+
+    describe('concurrent saves at same timestamp', () => {
+      it('multiple saves at exact same timestamp - first saves, rest debounced', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position3 = position2 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // All positions are far enough apart for proximity
+        expect(position2 - position1).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+        expect(position3 - position2).toBeGreaterThan(SEEK_MIN_DIFF_SECONDS);
+
+        // All three records at the same timestamp (time 0)
+        PositionHistory.record(state, position1);
+        PositionHistory.record(state, position2);
+        PositionHistory.record(state, position3);
+
+        // Only first should be saved - others debounced by the first save's window
+        expect(state.positionHistory).toHaveLength(1);
+        expect(state.positionHistory[0].time).toBe(position1);
+      });
+
+      it('rapid saves extend debounce window correctly', () => {
+        const basePosition = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // Save first position
+        PositionHistory.record(state, basePosition);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Simulate rapid seeking - each at different timestamp but within debounce
+        for (let i = 1; i <= 10; i++) {
+          vi.advanceTimersByTime(100); // 100ms between each
+          const newPosition = basePosition + i * (SEEK_MIN_DIFF_SECONDS + 10);
+          PositionHistory.record(state, newPosition);
+        }
+
+        // All should be debounced because each extends the window
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Total time elapsed: 1000ms (10 * 100ms)
+        // Last seek extended window to 1000ms, need to wait SEEK_DEBOUNCE_MS more
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        // Now a new save should work
+        const finalPosition = basePosition + 15 * (SEEK_MIN_DIFF_SECONDS + 10);
+        PositionHistory.record(state, finalPosition);
+        expect(state.positionHistory).toHaveLength(2);
+      });
+    });
+
+    describe('keyboard seek flag interaction', () => {
+      it('isKeyboardOrButtonSeek flag state is independent of debounce', () => {
+        const position1 = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const position2 = position1 + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // Record first position (simulates keyboard seek)
+        state.isKeyboardOrButtonSeek = true;
+        PositionHistory.record(state, position1);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Flag should remain true (not modified by record)
+        expect(state.isKeyboardOrButtonSeek).toBe(true);
+
+        // Advance past debounce
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        // Record again with flag still true
+        PositionHistory.record(state, position2);
+        expect(state.positionHistory).toHaveLength(2);
+
+        // Flag still not modified
+        expect(state.isKeyboardOrButtonSeek).toBe(true);
+      });
+
+      it('record does not modify isKeyboardOrButtonSeek flag', () => {
+        const position = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+
+        // Start with flag false
+        expect(state.isKeyboardOrButtonSeek).toBe(false);
+        PositionHistory.record(state, position);
+        expect(state.isKeyboardOrButtonSeek).toBe(false);
+
+        // Set flag true
+        state.isKeyboardOrButtonSeek = true;
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        const position2 = position + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        PositionHistory.record(state, position2);
+        expect(state.isKeyboardOrButtonSeek).toBe(true);
+      });
+    });
+
+    describe('state consistency under stress', () => {
+      it('lastSeekTime is only updated on successful save or debounce extension', () => {
+        const position = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        const initialLastSeekTime = state.lastSeekTime;
+
+        // Blocked save (below threshold) should NOT update lastSeekTime
+        PositionHistory.record(state, SEEK_MIN_DIFF_SECONDS - 1);
+        expect(state.lastSeekTime).toBe(initialLastSeekTime);
+        expect(state.positionHistory).toHaveLength(0);
+
+        // Valid save should update lastSeekTime
+        PositionHistory.record(state, position);
+        const timeAfterFirstSave = state.lastSeekTime;
+        expect(timeAfterFirstSave).not.toBe(initialLastSeekTime);
+        expect(state.positionHistory).toHaveLength(1);
+
+        // Advance time
+        vi.advanceTimersByTime(1000);
+
+        // Debounced save should update lastSeekTime (extends window)
+        const position2 = position + SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        PositionHistory.record(state, position2);
+        expect(state.lastSeekTime).toBe(timeAfterFirstSave + 1000); // Updated to current time
+        expect(state.positionHistory).toHaveLength(1); // Still just 1
+      });
+
+      it('blocked saves do not corrupt state', () => {
+        // Fill history to max
+        const baseTime = SEEK_MIN_DIFF_SECONDS + POSITION_OFFSET;
+        for (let i = 0; i < SEEK_MAX_HISTORY; i++) {
+          PositionHistory.save(state, baseTime + i * (SEEK_MIN_DIFF_SECONDS + 10));
+        }
+        expect(state.positionHistory).toHaveLength(SEEK_MAX_HISTORY);
+
+        const originalHistory = [...state.positionHistory];
+
+        // Wait for debounce to expire
+        vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1);
+
+        // Try multiple blocked saves (too close to existing)
+        for (let i = 0; i < SEEK_MAX_HISTORY; i++) {
+          const tooClose = state.positionHistory[i].time + 1;
+          PositionHistory.record(state, tooClose);
+        }
+
+        // History should be unchanged
+        expect(state.positionHistory).toHaveLength(SEEK_MAX_HISTORY);
+        expect(state.positionHistory.map((e) => e.time)).toEqual(
+          originalHistory.map((e) => e.time)
+        );
       });
     });
   });

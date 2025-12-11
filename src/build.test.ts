@@ -3,41 +3,79 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
 describe('Production Build', () => {
-  const buildPath = resolve(__dirname, '../build/chrome/extension/src/services/disney.js');
+  const disneyPath = resolve(__dirname, '../build/chrome/extension/src/services/disney.js');
+  const backgroundPath = resolve(__dirname, '../build/chrome/extension/src/background/index.js');
 
-  describe('debug code exclusion', () => {
+  describe('disney.js debug code exclusion', () => {
     it('build file exists', () => {
-      const exists = existsSync(buildPath);
+      const exists = existsSync(disneyPath);
       expect(exists).toBe(true);
     });
 
     it('does NOT contain DEV_SERVER_URL constant', () => {
-      const content = readFileSync(buildPath, 'utf-8');
+      const content = readFileSync(disneyPath, 'utf-8');
       expect(content).not.toContain('DEV_SERVER_URL');
     });
 
     it('does NOT contain debug server endpoint', () => {
-      const content = readFileSync(buildPath, 'utf-8');
-      expect(content).not.toContain('localhost:5173/__debug_log');
+      const content = readFileSync(disneyPath, 'utf-8');
+      expect(content).not.toContain('__debug_log');
     });
 
     it('does NOT contain sendToServer function', () => {
-      const content = readFileSync(buildPath, 'utf-8');
+      const content = readFileSync(disneyPath, 'utf-8');
       expect(content).not.toContain('sendToServer');
     });
 
     it('does NOT contain initConsoleForward function', () => {
-      const content = readFileSync(buildPath, 'utf-8');
+      const content = readFileSync(disneyPath, 'utf-8');
       expect(content).not.toContain('initConsoleForward');
     });
 
     it('does NOT contain Debug.log calls', () => {
-      const content = readFileSync(buildPath, 'utf-8');
+      const content = readFileSync(disneyPath, 'utf-8');
       expect(content).not.toContain('Debug.log');
     });
 
     it('does NOT contain connectionErrorLogged variable', () => {
-      const content = readFileSync(buildPath, 'utf-8');
+      const content = readFileSync(disneyPath, 'utf-8');
+      expect(content).not.toContain('connectionErrorLogged');
+    });
+  });
+
+  describe('background/index.js debug code exclusion', () => {
+    it('build file exists', () => {
+      const exists = existsSync(backgroundPath);
+      expect(exists).toBe(true);
+    });
+
+    it('does NOT contain DEV_SERVER_URL constant', () => {
+      const content = readFileSync(backgroundPath, 'utf-8');
+      expect(content).not.toContain('DEV_SERVER_URL');
+    });
+
+    it('does NOT contain debug server endpoint', () => {
+      const content = readFileSync(backgroundPath, 'utf-8');
+      expect(content).not.toContain('__debug_log');
+    });
+
+    it('does NOT contain sendToServer function', () => {
+      const content = readFileSync(backgroundPath, 'utf-8');
+      expect(content).not.toContain('sendToServer');
+    });
+
+    it('does NOT contain initConsoleForward function', () => {
+      const content = readFileSync(backgroundPath, 'utf-8');
+      expect(content).not.toContain('initConsoleForward');
+    });
+
+    it('does NOT contain Debug.log calls', () => {
+      const content = readFileSync(backgroundPath, 'utf-8');
+      expect(content).not.toContain('Debug.log');
+    });
+
+    it('does NOT contain connectionErrorLogged variable', () => {
+      const content = readFileSync(backgroundPath, 'utf-8');
       expect(content).not.toContain('connectionErrorLogged');
     });
   });
