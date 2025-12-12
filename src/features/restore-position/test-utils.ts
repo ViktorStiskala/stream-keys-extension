@@ -340,8 +340,13 @@ export function clickTimeline(video: MockVideoElement, toTime: number) {
 }
 
 /**
- * Advance playback and let RAF loop update stable time.
+ * Advance playback and update stable time values.
  * Updates both video currentTime and Disney+ progress bar if available.
+ *
+ * NOTE: jsdom doesn't properly support requestAnimationFrame, so the RAF loop
+ * in setupVideoTracking() that normally updates _streamKeysStableTime and
+ * _streamKeysLastKnownTime doesn't run. We manually set these values to simulate
+ * what the RAF loop would do in production.
  */
 export function advancePlayback(
   ctx: ServiceTestContext,
@@ -351,4 +356,9 @@ export function advancePlayback(
   ctx.video._simulatePlayback(toTime);
   ctx.setProgressBarTime?.(toTime);
   vi.advanceTimersByTime(advanceMs);
+
+  // Manually update stable time values since jsdom doesn't run RAF
+  const augmentedVideo = ctx.video as StreamKeysVideoElement;
+  augmentedVideo._streamKeysStableTime = toTime;
+  augmentedVideo._streamKeysLastKnownTime = toTime;
 }

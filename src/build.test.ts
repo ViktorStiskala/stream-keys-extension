@@ -16,12 +16,15 @@ import { resolve } from 'path';
 /**
  * Debug tokens that should NOT appear in production builds.
  * If you add new debug-only code, add its identifiers here.
+ *
+ * Note: We don't check for 'initConsoleForward' because it's a property name
+ * on the Debug stub object. The property exists as a no-op, but the actual
+ * implementation code (console patching, server URL, etc.) is tree-shaken.
  */
 const DEBUG_TOKENS = [
   'DEV_SERVER_URL',
   '__debug_log',
   'sendToServer',
-  'initConsoleForward',
   'Debug.log',
   'connectionErrorLogged',
 ] as const;

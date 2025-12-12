@@ -111,19 +111,14 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       const startPos = SEEK_MIN_DIFF_SECONDS * 10;
       advancePlayback(ctx, startPos);
 
-      // Update stable time
       const video = ctx.video as StreamKeysVideoElement;
-      video._streamKeysStableTime = startPos;
-      video._streamKeysLastKnownTime = startPos;
 
       // First timeline click (large jump to avoid proximity rejection)
       const dest1 = startPos + SEEK_MIN_DIFF_SECONDS * 5;
       clickTimeline(ctx.video, dest1);
 
-      // Advance playback to dest1 and update stable time
+      // Advance playback to dest1
       advancePlayback(ctx, dest1);
-      video._streamKeysStableTime = dest1;
-      video._streamKeysLastKnownTime = dest1;
 
       // Only 1 second later (within SEEK_DEBOUNCE_MS!)
       vi.advanceTimersByTime(1000);
@@ -175,8 +170,6 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       advancePlayback(ctx, startPos);
 
       const video = ctx.video as StreamKeysVideoElement;
-      video._streamKeysStableTime = startPos;
-      video._streamKeysLastKnownTime = startPos;
 
       // First key press - should save position
       await pressArrowKey(user, 'right');
@@ -189,6 +182,8 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       for (let i = 0; i < 30; i++) {
         vi.advanceTimersByTime(100);
 
+        // Manually update position and stable time in loop
+        // (not using advancePlayback to control timing precisely)
         const newPos = startPos + (i + 1) * positionIncrement;
         ctx.video._simulatePlayback(newPos);
         ctx.setProgressBarTime?.(newPos);
@@ -208,8 +203,6 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       advancePlayback(ctx, startPos);
 
       const video = ctx.video as StreamKeysVideoElement;
-      video._streamKeysStableTime = startPos;
-      video._streamKeysLastKnownTime = startPos;
 
       // First press - saves
       await pressArrowKey(user, 'right');
@@ -220,8 +213,6 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       // Update position
       const newPos = startPos + SEEK_MIN_DIFF_SECONDS * 5;
       advancePlayback(ctx, newPos);
-      video._streamKeysStableTime = newPos;
-      video._streamKeysLastKnownTime = newPos;
 
       // Second press after debounce expired - should save
       await pressArrowKey(user, 'right');
@@ -236,8 +227,6 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       advancePlayback(ctx, startPos);
 
       const video = ctx.video as StreamKeysVideoElement;
-      video._streamKeysStableTime = startPos;
-      video._streamKeysLastKnownTime = startPos;
 
       // First click - saves
       await clickSkipButton(user, 'forward', ctx);
@@ -249,6 +238,8 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       for (let i = 0; i < 20; i++) {
         vi.advanceTimersByTime(100);
 
+        // Manually update position and stable time in loop
+        // (not using advancePlayback to control timing precisely)
         const newPos = startPos + (i + 1) * positionIncrement;
         ctx.video._simulatePlayback(newPos);
         ctx.setProgressBarTime?.(newPos);
@@ -269,8 +260,6 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       advancePlayback(ctx, startPos);
 
       const video = ctx.video as StreamKeysVideoElement;
-      video._streamKeysStableTime = startPos;
-      video._streamKeysLastKnownTime = startPos;
 
       // Keyboard seek - saves startPos
       await pressArrowKey(user, 'right');
@@ -279,8 +268,6 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       vi.advanceTimersByTime(1000);
       const newPos = startPos + SEEK_MIN_DIFF_SECONDS * 5;
       advancePlayback(ctx, newPos);
-      video._streamKeysStableTime = newPos;
-      video._streamKeysLastKnownTime = newPos;
 
       // Timeline click - should save newPos (timeline is NOT debounced)
       const dest = newPos + SEEK_MIN_DIFF_SECONDS * 5;
@@ -294,13 +281,12 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       advancePlayback(ctx, startPos);
 
       const video = ctx.video as StreamKeysVideoElement;
-      video._streamKeysStableTime = startPos;
-      video._streamKeysLastKnownTime = startPos;
 
       // Keyboard seek - saves startPos and starts debounce window
       await pressArrowKey(user, 'right');
 
       // 1 second later, timeline click
+      // (manually set stable time since we're simulating time passing, not using advancePlayback)
       vi.advanceTimersByTime(1000);
       const pos2 = startPos + SEEK_MIN_DIFF_SECONDS * 5;
       video._streamKeysStableTime = pos2;
@@ -308,6 +294,7 @@ describe.each(services)('Position History Debouncing - $name (fixture: $fixture)
       clickTimeline(ctx.video, pos2 + SEEK_MIN_DIFF_SECONDS * 5);
 
       // Update stable time after seek
+      // (manually set since we're just advancing time, not using advancePlayback)
       vi.advanceTimersByTime(STABLE_TIME_DELAY_MS + 100);
       const pos3 = pos2 + SEEK_MIN_DIFF_SECONDS * 5;
       video._streamKeysStableTime = pos3;
@@ -356,8 +343,6 @@ describe('HBO Max specific: seeked event flag reset', () => {
     advancePlayback(ctx, startPos);
 
     const video = ctx.video as StreamKeysVideoElement;
-    video._streamKeysStableTime = startPos;
-    video._streamKeysLastKnownTime = startPos;
 
     // Key press sets isKeyboardOrButtonSeek flag
     await pressArrowKey(user, 'right');
@@ -371,8 +356,6 @@ describe('HBO Max specific: seeked event flag reset', () => {
     // Update position
     const newPos = startPos + SEEK_MIN_DIFF_SECONDS * 5;
     advancePlayback(ctx, newPos);
-    video._streamKeysStableTime = newPos;
-    video._streamKeysLastKnownTime = newPos;
 
     // Timeline click should save (flag was reset by seeked event)
     clickTimeline(ctx.video, newPos + SEEK_MIN_DIFF_SECONDS * 5);
@@ -395,8 +378,6 @@ describe('HBO Max specific: seeked event flag reset', () => {
 
     const video = ctx.video as StreamKeysVideoElement;
     let currentPos = startPos;
-    video._streamKeysStableTime = currentPos;
-    video._streamKeysLastKnownTime = currentPos;
 
     // Simulate rapid key presses - key press comes BEFORE seeked event
     for (let i = 0; i < 15; i++) {
@@ -406,7 +387,8 @@ describe('HBO Max specific: seeked event flag reset', () => {
       vi.advanceTimersByTime(100);
       currentPos += SEEK_MIN_DIFF_SECONDS;
 
-      // Update video position
+      // Manually update position and stable time in loop
+      // (not using advancePlayback to control timing precisely)
       ctx.video._simulatePlayback(currentPos);
       video._streamKeysStableTime = currentPos;
       video._streamKeysLastKnownTime = currentPos;

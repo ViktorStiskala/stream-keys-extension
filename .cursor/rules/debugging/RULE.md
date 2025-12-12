@@ -46,23 +46,54 @@ This forwards all `console.log/warn/error` from the page context to the Vite dev
 
 **Why each service needs this:** Service handlers run in the MAIN world of the page (not the service worker), so each service needs to initialize its own console forwarding.
 
+## Debug Module Architecture
+
+The Debug module (`src/core/debug.ts`) uses a **conditional export pattern** for production safety:
+
+```typescript
+// In production (__DEV__ = false):
+export const Debug = DebugStub;  // No-op functions
+
+// In development (__DEV__ = true):
+export const Debug = createDebugImpl();  // Full implementation
+```
+
+This ensures:
+- **Complete dead code elimination** - the entire implementation is removed from production builds
+- **No debug strings in production** - strings like 'Debug.log', 'DEV_SERVER_URL' never appear
+- **Safe to import** - importing Debug is safe in any file; it resolves to no-ops in production
+
 ## Debug API
 
 - `Debug.log(...)` - Logs with `[StreamKeys]` prefix and forwards to dev server
+- `Debug.action(name, details?)` - Logs user actions (key presses, button clicks)
+- `Debug.event(eventName, details, context?)` - Logs browser events with field extraction
 - `Debug.initConsoleForward()` - Patches console.log/warn/error to forward to dev server
+- `Debug.withDebug(eventName, handler)` - Wraps event handler with automatic logging
 
-## Dead Code Elimination
+## Best Practice: Wrap Debug Calls in `if (__DEV__)`
 
-**All debug calls MUST be wrapped in `if (__DEV__)` blocks** to ensure they are completely removed from production builds:
+**Even though Debug is a no-op in production, wrapping calls in `if (__DEV__)` is still recommended:**
 
 @scripts/debug-usage.ts
 
-When `__DEV__` is `false`, Vite + terser removes the entire `if` block including:
-- The condition check
-- The function calls
-- Argument evaluation
+**Why wrap even with no-op stubs?**
+1. **Argument evaluation** - `Debug.log(expensiveComputation())` still evaluates the argument
+2. **Cleaner bundles** - The entire call is removed, not just executed as no-op
+3. **Consistency** - Clear signal that this code is dev-only
+
+**When wrapping is essential:**
+- When arguments involve computation: `Debug.log(JSON.stringify(state))`
+- When calling multiple debug methods in sequence
+- In hot paths where even no-op function calls add overhead
+
+**When wrapping is optional:**
+- Simple string literals: `Debug.log('Initialized')` (minimal overhead as no-op)
+- When the stub pattern is preferred for cleaner code
 
 ## Logging Convention
 
-- `console.info('[StreamKeys] ...')` - Extension loaded messages
+- `console.info('[StreamKeys] ...')` - Extension loaded messages (appears in production)
 - `console.warn('[StreamKeys] ...')` - Button not found or other recoverable issues
+- `Debug.log(...)` - Dev-only detailed logging (removed in production)
+- `Debug.action(...)` - Dev-only user action tracking
