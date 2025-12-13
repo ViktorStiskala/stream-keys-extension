@@ -16,10 +16,11 @@ globs:
 - `SEEK_MIN_DIFF_SECONDS`: Minimum difference between saved positions (15 seconds)
 
 ### Debounce Logic for Seeks
-- `SEEK_DEBOUNCE_MS`: 5 seconds window for grouping rapid seeks
+- `SEEK_DEBOUNCE_MS`: 2 seconds window for grouping rapid seeks
 - Only the position before the FIRST seek in a sequence is saved
-- Both keyboard seeks AND UI/timeline seeks use debouncing via `debouncedSavePosition()`
-- Flag `isKeyboardOrButtonSeek` distinguishes seek sources (keyboard seeks are recorded explicitly, UI seeks are recorded via `seeking` event)
+- **Keyboard/button seeks** use debouncing via `debouncedSavePosition()` - prevents rapid key presses from filling history
+- **Timeline clicks** are NOT debounced - each click is a deliberate user action that should be recorded
+- Flag `isKeyboardOrButtonSeek` distinguishes seek sources (keyboard seeks are recorded explicitly via `recordBeforeSeek()`, timeline seeks are recorded via `seeking` event)
 - Debounce window uses inclusive boundary: `now - lastSeekTime <= SEEK_DEBOUNCE_MS`
 
 ### Position Recording Rules
@@ -34,6 +35,22 @@ Capture happens on `canplay`, `playing`, or `seeked` events:
 1. Wait 1 second for player to settle
 2. Only capture if position >= 15 seconds
 3. Mark video ready for tracking after 500ms delay (avoids recording initial resume seek)
+
+## Video Change Detection
+
+History is automatically cleared when navigating to a new video:
+
+- **Tracked state**: Current video element AND its source (`video.src || video.currentSrc`)
+- **Detection**: Runs every 1 second via `setupInterval`
+- **Triggers**:
+  - Different video element (HBO Max pattern: new DOM element for each video)
+  - Same video element with different source (Disney+ pattern: blob URL changes)
+- **On change**:
+  1. Log "[StreamKeys] New video detected, position history cleared"
+  2. Clean up old video listeners
+  3. Reset state via `PositionHistory.reset(state)`
+  4. Clear `_streamKeysSeekListenerAdded` flag on old video
+  5. Set up tracking for new video (which recaptures load time position)
 
 ## Dialog State Management
 
@@ -81,7 +98,7 @@ const track = () => {
 
 The key insight: the value passed to `setTimeout` is captured at scheduling time, not read when the timeout fires. This eliminates race conditions where the UI updates before `video.seeking` becomes true.
 
-After seek completes (`seeked` event), both times are synced to the current position.
+After seek completes (`seeked` event), only `_streamKeysLastKnownTime` is synced to the current position. The `_streamKeysStableTime` is NOT updated by the `seeked` handler - the RAF loop will update it with the proper 500ms delay, ensuring it always reflects a position from before any potential new seek.
 
 ### Getting Pre-Seek Position
 
@@ -113,10 +130,12 @@ import {
   PositionHistory,
   SEEK_MAX_HISTORY,      // 3 - max entries in history
   SEEK_MIN_DIFF_SECONDS, // 15 - min seconds between positions
-  SEEK_DEBOUNCE_MS       // 5000 - debounce window for rapid seeks
+  SEEK_DEBOUNCE_MS       // 2000 - debounce window for rapid seeks
 } from './history';
 
 // Public API methods:
+// - PositionHistory.createState() - create new state object
+// - PositionHistory.reset(state) - reset state for new video
 // - PositionHistory.save(state, time) - direct save, no debounce
 // - PositionHistory.record(state, time) - save with debounce
 // - PositionHistory.debouncedSave(state, time) - returns true if debounced, false if save attempted

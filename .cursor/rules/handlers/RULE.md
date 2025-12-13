@@ -1,6 +1,5 @@
 ---
-description: StreamKeys Extension - Handler Configuration
-alwaysApply: true
+description: Handler configuration, feature flags, and position tracking for StreamKeys service handlers. Apply this rule when working with createHandler() in src/handlers/factory.ts, implementing or modifying service handlers in src/services/, configuring feature flags (subtitles, restorePosition, keyboard, fullscreenOverlay), implementing seek button interception, or debugging position history recording. Essential for understanding: getPlayer, getButton, getSeekButtons, supportsDirectSeek, getPlaybackTime, getDuration config properties; the isKeyboardOrButtonSeek flag and its reset strategies (event-based vs timeout); pointerdown vs click event handling; and position history debouncing (keyboard seeks debounced, timeline clicks not). Relevant keywords: handler, createHandler, feature flag, seek, position history, debounce, media keys, button interception.
 ---
 
 # Handler Configuration with Feature Flags
@@ -89,13 +88,13 @@ The capture phase (`true`) ensures our handler runs before any handlers on child
 
 Position history uses different debouncing strategies based on seek source:
 
-### Keyboard/Button Seeks: DEBOUNCED (5 seconds)
+### Keyboard/Button Seeks: DEBOUNCED (2 seconds)
 
 Seeks triggered by keyboard arrow keys, media keys, or UI skip buttons are debounced. This prevents rapid key presses (e.g., holding down an arrow key) from filling up the position history with many entries.
 
 ```typescript
 // In recordPositionBeforeSeek (used by keyboard/button seeks)
-debouncedSavePosition(state, preSeekTime);  // 5-second debounce window
+debouncedSavePosition(state, preSeekTime);  // 2-second debounce window
 ```
 
 ### Timeline Clicks: NEVER DEBOUNCED

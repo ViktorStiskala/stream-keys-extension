@@ -171,7 +171,6 @@ export interface ServiceTestContext {
   getSeekButtons: () => { backward: HTMLElement | null; forward: HTMLElement | null };
   /** Disney+ only: update progress bar time */
   setProgressBarTime?: (seconds: number) => void;
-  supportsDirectSeek: boolean;
 }
 
 /**
@@ -208,7 +207,6 @@ export function setupHBOMaxTest(): ServiceTestContext {
     getPlayer: () => player,
     getVideo: () => video,
     getSeekButtons,
-    supportsDirectSeek: true,
     getButton: (code: string) => {
       if (code === 'ArrowLeft') return getSeekButtons().backward;
       if (code === 'ArrowRight') return getSeekButtons().forward;
@@ -216,7 +214,7 @@ export function setupHBOMaxTest(): ServiceTestContext {
     },
   });
 
-  return { name: 'HBO Max', video, player, handler, getSeekButtons, supportsDirectSeek: true };
+  return { name: 'HBO Max', video, player, handler, getSeekButtons };
 }
 
 /**
@@ -269,7 +267,11 @@ export function setupDisneyPlusTest(): ServiceTestContext {
     getPlaybackTime,
     getDuration: () => 7200,
     getSeekButtons,
-    supportsDirectSeek: false,
+    // Disney+ uses native buttons for seeking (ignores custom delta)
+    seekByDelta: (_video, delta) => {
+      const button = delta < 0 ? getSeekButtons().backward : getSeekButtons().forward;
+      button?.click();
+    },
     getButton: (code: string) => {
       if (code === 'ArrowLeft') return getSeekButtons().backward;
       if (code === 'ArrowRight') return getSeekButtons().forward;
@@ -285,7 +287,6 @@ export function setupDisneyPlusTest(): ServiceTestContext {
     handler,
     getSeekButtons,
     setProgressBarTime,
-    supportsDirectSeek: false,
   };
 }
 

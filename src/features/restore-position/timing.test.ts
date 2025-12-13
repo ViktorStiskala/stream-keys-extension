@@ -256,13 +256,13 @@ describe('Restore Position Timing', () => {
    *
    * HBO Max:
    * - Standard DOM (no Shadow DOM for buttons)
-   * - supportsDirectSeek: true (default) - can use video.currentTime directly
+   * - Uses default seekByDelta (video.currentTime += delta)
    * - Uses standard video.currentTime for playback time
    * - Standard video seek behavior: video.seeking becomes true when seek starts
    *
    * Disney+:
    * - Shadow DOM for buttons (quick-rewind, quick-fast-forward)
-   * - supportsDirectSeek: false - video.currentTime is buffer-relative (MSE)
+   * - Custom seekByDelta that clicks native buttons (video.currentTime is buffer-relative)
    * - Custom getPlaybackTime from progress bar's aria-valuenow
    * - Race condition: progress bar updates BEFORE video.seeking becomes true
    */
@@ -429,12 +429,12 @@ describe('Restore Position Timing', () => {
     });
 
     /**
-     * Test: HBO Max - supportsDirectSeek allows custom seek time
+     * Test: HBO Max - video.currentTime works for seeking
      *
      * HBO Max can use video.currentTime = newTime directly because its video
-     * element has standard behavior. This is used when custom seek time is enabled.
+     * element has standard behavior. This is used by the default seekByDelta.
      */
-    it('HBO Max: video.currentTime can be set directly (supportsDirectSeek: true)', async () => {
+    it('HBO Max: video.currentTime can be set directly', async () => {
       await initAndWaitForReady(ctx);
 
       const augmentedVideo = ctx.getVideoElement() as StreamKeysVideoElement;
@@ -451,13 +451,13 @@ describe('Restore Position Timing', () => {
     });
 
     /**
-     * Test: Disney+ - Direct video.currentTime is unreliable
+     * Test: Disney+ - video.currentTime is buffer-relative (MSE)
      *
      * Disney+ uses MediaSource Extensions where video.currentTime is buffer-relative.
-     * Setting video.currentTime directly may not work as expected.
-     * Custom seek time must use the native buttons instead.
+     * Setting video.currentTime directly doesn't work as expected.
+     * Disney+ provides custom seekByDelta that clicks native buttons instead.
      */
-    it('Disney+: video.currentTime differs from actual playback time (supportsDirectSeek: false)', async () => {
+    it('Disney+: video.currentTime differs from actual playback time', async () => {
       // Disney+ scenario: video.currentTime is buffer-relative
       const actualPlaybackTime = 3600; // 1 hour into the movie
       const bufferRelativeTime = 45; // MSE buffer position
@@ -485,7 +485,7 @@ describe('Restore Position Timing', () => {
       // But _streamKeysGetPlaybackTime gives actual time from progress bar
       expect(augmentedVideo._streamKeysGetPlaybackTime?.()).toBe(3600);
 
-      // This is why supportsDirectSeek: false for Disney+ -
+      // This is why Disney+ provides custom seekByDelta -
       // setting video.currentTime doesn't seek to the expected position
     });
   });

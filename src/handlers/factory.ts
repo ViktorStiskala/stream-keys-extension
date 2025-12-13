@@ -72,12 +72,24 @@ function createHandler(config: HandlerConfig): HandlerAPI {
     getDuration: config.getDuration,
   });
 
+  // Default seek implementation using video.currentTime
+  const defaultSeekByDelta = (video: HTMLVideoElement, delta: number) => {
+    video.currentTime = Math.max(
+      0,
+      Math.min(video.duration || Infinity, video.currentTime + delta)
+    );
+  };
+  const seekByDelta = config.seekByDelta ?? defaultSeekByDelta;
+
   // Initialize features
   let restorePositionAPI: RestorePositionAPI | undefined;
   let subtitlesAPI: SubtitlesAPI | undefined;
 
   if (features.restorePosition) {
-    restorePositionAPI = RestorePosition.init({ getVideoElement });
+    restorePositionAPI = RestorePosition.init({
+      getVideoElement,
+      seekToTime: config.seekToTime,
+    });
     cleanupFns.push(restorePositionAPI.cleanup);
   }
 
@@ -91,16 +103,13 @@ function createHandler(config: HandlerConfig): HandlerAPI {
   // Initialize keyboard handling
   let keyboardHandler: ((e: KeyboardEvent) => void) | undefined;
 
-  // Whether direct video.currentTime manipulation works
-  const supportsDirectSeek = config.supportsDirectSeek !== false;
-
   if (features.keyboard) {
     const keyboardAPI = Keyboard.init({
       getVideoElement,
       getButton: config.getButton,
       restorePosition: restorePositionAPI,
       subtitles: subtitlesAPI,
-      supportsDirectSeek,
+      seekByDelta,
     });
     keyboardHandler = keyboardAPI.handleKey;
     cleanupFns.push(keyboardAPI.cleanup);
@@ -214,14 +223,7 @@ function createHandler(config: HandlerConfig): HandlerAPI {
           if (__DEV__) Debug.action('Media key: Previous track', `seek backward ${delta}s`);
 
           trackPositionBeforeSeek(video);
-
-          // For services with buffer-relative currentTime (like Disney+), click native button
-          if (!supportsDirectSeek) {
-            config.getSeekButtons?.().backward?.click();
-            return;
-          }
-
-          video.currentTime = Math.max(0, video.currentTime - delta);
+          seekByDelta(video, -delta);
         });
 
         navigator.mediaSession.setActionHandler('nexttrack', () => {
@@ -232,14 +234,7 @@ function createHandler(config: HandlerConfig): HandlerAPI {
           if (__DEV__) Debug.action('Media key: Next track', `seek forward ${delta}s`);
 
           trackPositionBeforeSeek(video);
-
-          // For services with buffer-relative currentTime (like Disney+), click native button
-          if (!supportsDirectSeek) {
-            config.getSeekButtons?.().forward?.click();
-            return;
-          }
-
-          video.currentTime = Math.min(video.duration || Infinity, video.currentTime + delta);
+          seekByDelta(video, delta);
         });
         if (__DEV__ && logEnabled) {
           // eslint-disable-next-line no-console
@@ -260,6 +255,9 @@ function createHandler(config: HandlerConfig): HandlerAPI {
   }
 
   // UI Button interception (for position history + custom seek)
+  // Custom seek override only works when using default seekByDelta (direct video.currentTime)
+  const canOverrideButtonSeek = !config.seekByDelta;
+
   if (config.getSeekButtons) {
     const interceptedButtons = new WeakSet<HTMLElement>();
 
@@ -282,16 +280,14 @@ function createHandler(config: HandlerConfig): HandlerAPI {
             const video = getVideoElement();
             trackPositionBeforeSeek(video);
 
-            // Only override seek if custom seek enabled AND service supports direct seek
-            if (Settings.isCustomSeekEnabled() && supportsDirectSeek && video) {
+            // Override button seek only if custom seek enabled AND using default seekByDelta
+            // (Disney+ provides custom seekByDelta, so custom seek time doesn't apply)
+            if (Settings.isCustomSeekEnabled() && canOverrideButtonSeek && video) {
               e.stopImmediatePropagation();
               e.preventDefault();
               const delta =
                 direction === 'backward' ? -Settings.getSeekTime() : Settings.getSeekTime();
-              video.currentTime = Math.max(
-                0,
-                Math.min(video.duration || Infinity, video.currentTime + delta)
-              );
+              seekByDelta(video, delta);
             }
           },
           true

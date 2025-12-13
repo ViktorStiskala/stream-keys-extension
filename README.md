@@ -36,6 +36,8 @@ Stream Keys adds a reliable layer of keyboard handling on top of the player, so 
 - **Subtitles** (`C`) - Quickly toggle subtitles based on your language preferences
 - **Position Restore** (`R`) - Jump back to previous positions in the video
 - **Rewind/Forward** (`←`/`→`) - Skip backward or forward (Disney+)
+- **Media Keys** - Control playback with keyboard media keys (play/pause, skip forward/backward)
+- **Custom Seek Time** - Configure how many seconds to skip with arrow keys and media keys
 - **No Focus Outline** - Removes the distracting blue focus ring (Disney+)
 - **Works in Fullscreen** - All shortcuts work reliably in fullscreen mode, including after you exit fullscreen
 
@@ -50,6 +52,8 @@ Stream Keys adds a reliable layer of keyboard handling on top of the player, so 
 | `←` / `→` | Rewind / Forward (Disney+) |
 | `1-3` | Jump to saved position (when dialog is open) |
 | `Esc` | Close position restore dialog |
+| `⏯` | Play / Pause (media key) |
+| `⏮` / `⏭` | Skip backward / forward (media keys) |
 
 ## Subtitle Language Preferences
 
@@ -87,6 +91,22 @@ The dialog shows:
 
 **Settings:**
 - Position history can be disabled in the extension settings (right-click icon → Options)
+
+## Playback Controls
+
+Control playback with keyboard media keys and customize skip duration.
+
+**Media Keys:**
+- Play/Pause media key toggles video playback
+- Previous/Next track keys skip backward/forward (uses custom seek time if enabled)
+- Media key capture can be disabled in settings if it conflicts with other applications
+
+**Custom Seek Time:**
+- Override the default 10-second skip duration for arrow keys and media keys
+- Configure any value from 5 to 120 seconds
+- Enable in the extension settings (right-click icon → Options)
+
+> **Note:** Custom seek time uses keyboard shortcuts and media keys. Skip buttons on Disney+ always use the service's default duration (10 seconds).
 
 ## Installation (Google Chrome)
 

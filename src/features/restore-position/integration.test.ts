@@ -602,4 +602,97 @@ describe('Restore Position Integration', () => {
       expect(ctx.restorePositionAPI!.isDialogOpen()).toBe(false);
     });
   });
+
+  describe('Video change detection', () => {
+    it('clears position history when video source changes (Disney+ pattern)', async () => {
+      await initAndWaitForReady(ctx);
+
+      const state = ctx.restorePositionAPI!.getState();
+      const loadTime = state.loadTimePosition!;
+
+      // Save positions far from load time (load time is ~115s)
+      // Need to be at least SEEK_MIN_DIFF_SECONDS (15s) apart from load time and each other
+      PositionHistory.save(state, loadTime + 50);
+      PositionHistory.save(state, loadTime + 100);
+      expect(state.positionHistory.length).toBe(2);
+      expect(state.loadTimePosition).not.toBeNull();
+
+      // Simulate video source change (like navigating to new video on Disney+)
+      // Disney+ reuses the same video element but changes the blob src
+      ctx.video.src = 'blob:https://disneyplus.com/new-video-' + Date.now();
+      ctx.video.dispatchEvent(new Event('loadedmetadata'));
+
+      // Wait for setup interval to detect the change
+      vi.advanceTimersByTime(1100);
+
+      // History from previous video should be cleared
+      expect(state.positionHistory.length).toBe(0);
+
+      // Load time position is recaptured for the new video (correct behavior)
+      // The same video element is reused, so it recaptures based on current playback
+      expect(state.loadTimePosition).not.toBeNull();
+    });
+
+    it('clears position history when video element changes (HBO Max pattern)', async () => {
+      // HBO Max creates a new video element when navigating to a new video
+      // We need a mutable video reference to test this pattern
+
+      // Create first video
+      let currentVideo: StreamKeysVideoElement = document.createElement(
+        'video'
+      ) as unknown as StreamKeysVideoElement;
+      currentVideo.src = 'blob:https://play.hbomax.com/video-1';
+      Object.defineProperty(currentVideo, 'duration', { value: 7200, writable: true });
+      Object.defineProperty(currentVideo, 'readyState', { value: 4, writable: true });
+      currentVideo.currentTime = SEEK_MIN_DIFF_SECONDS + 100; // Resume position
+      document.body.appendChild(currentVideo);
+
+      // Create getter that returns the mutable currentVideo reference
+      const getVideoElement = Video.createGetter({
+        getPlayer: () => document.body,
+        getVideo: () => currentVideo,
+      });
+
+      // Initialize restore position with mutable getter
+      const api = RestorePosition.init({ getVideoElement });
+
+      // Simulate video ready
+      currentVideo.dispatchEvent(new Event('canplay'));
+      vi.advanceTimersByTime(LOAD_TIME_CAPTURE_DELAY_MS + 600);
+
+      const state = api.getState();
+      const loadTime = state.loadTimePosition!;
+
+      // Save a position
+      PositionHistory.save(state, loadTime + 50);
+      expect(state.positionHistory.length).toBe(1);
+      expect(state.loadTimePosition).not.toBeNull();
+
+      // HBO Max pattern: Remove old video, create new video element
+      const oldVideo = currentVideo;
+      oldVideo.remove();
+
+      // Create new video element (HBO Max does this when navigating)
+      currentVideo = document.createElement('video') as unknown as StreamKeysVideoElement;
+      currentVideo.src = 'blob:https://play.hbomax.com/video-2-different';
+      Object.defineProperty(currentVideo, 'duration', { value: 3600, writable: true });
+      Object.defineProperty(currentVideo, 'readyState', { value: 4, writable: true });
+      currentVideo.currentTime = 60; // New video starts at 1:00
+      document.body.appendChild(currentVideo);
+
+      // Wait for setup interval to detect the new video element
+      vi.advanceTimersByTime(1100);
+
+      // History from previous video should be cleared
+      expect(state.positionHistory.length).toBe(0);
+
+      // Load time position is recaptured for the new video (60s)
+      // This is correct behavior - the new video's position is captured
+      expect(state.loadTimePosition).toBe(60);
+
+      // Cleanup
+      api.cleanup();
+      currentVideo.remove();
+    });
+  });
 });

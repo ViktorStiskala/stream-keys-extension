@@ -25,11 +25,8 @@ export interface KeyboardConfig {
   getButton?: (keyCode: string) => HTMLElement | null;
   restorePosition?: RestorePositionAPI;
   subtitles?: SubtitlesAPI;
-  /**
-   * Whether direct video.currentTime manipulation is supported.
-   * When false, custom seek will click native buttons instead.
-   */
-  supportsDirectSeek?: boolean;
+  /** Seek forward/backward by delta seconds */
+  seekByDelta: (video: HTMLVideoElement, delta: number) => void;
 }
 
 export interface KeyboardAPI {
@@ -43,13 +40,7 @@ export interface KeyboardAPI {
  * Initialize the Keyboard feature
  */
 function initKeyboard(config: KeyboardConfig): KeyboardAPI {
-  const {
-    getVideoElement,
-    getButton,
-    restorePosition,
-    subtitles,
-    supportsDirectSeek = true,
-  } = config;
+  const { getVideoElement, getButton, restorePosition, subtitles, seekByDelta } = config;
 
   /**
    * Track position before seeking for position history.
@@ -122,27 +113,17 @@ function initKeyboard(config: KeyboardConfig): KeyboardAPI {
     video: StreamKeysVideoElement | null,
     direction: 'backward' | 'forward'
   ): boolean => {
-    // Case 1: Custom seek with direct currentTime manipulation
-    if (Settings.isCustomSeekEnabled() && supportsDirectSeek && video) {
-      const delta = direction === 'backward' ? -Settings.getSeekTime() : Settings.getSeekTime();
-      video.currentTime = Math.max(
-        0,
-        Math.min(video.duration || Infinity, video.currentTime + delta)
-      );
-      return true;
-    }
+    if (!video) return false;
 
-    // Case 2: Click native button (default behavior, or fallback when supportsDirectSeek=false)
-    if (getButton) {
-      const keyCode = direction === 'backward' ? 'ArrowLeft' : 'ArrowRight';
-      const button = getButton(keyCode);
-      if (button) {
-        button.click();
-        return true;
-      }
-    }
+    const delta =
+      direction === 'backward'
+        ? -(Settings.isCustomSeekEnabled() ? Settings.getSeekTime() : 10)
+        : Settings.isCustomSeekEnabled()
+          ? Settings.getSeekTime()
+          : 10;
 
-    return false;
+    seekByDelta(video, delta);
+    return true;
   };
 
   const handleGlobalKeys = (e: KeyboardEvent) => {

@@ -37,6 +37,16 @@ function createPositionHistoryState(): PositionHistoryState {
 }
 
 /**
+ * Reset position history state (used when a new video is detected)
+ */
+function resetState(state: PositionHistoryState): void {
+  state.positionHistory = [];
+  state.loadTimePosition = null;
+  state.lastSeekTime = 0;
+  state.isKeyboardOrButtonSeek = false;
+}
+
+/**
  * Save a position to history
  * @returns true if saved, false if blocked (too short, too close to existing, etc.)
  */
@@ -318,6 +328,8 @@ function setupVideoTracking(
 // Public API
 export const PositionHistory = {
   createState: createPositionHistoryState,
+  /** Reset state when a new video is detected */
+  reset: resetState,
   save: savePositionToHistory,
   record: recordPositionBeforeSeek,
   getPositions: getRestorePositions,

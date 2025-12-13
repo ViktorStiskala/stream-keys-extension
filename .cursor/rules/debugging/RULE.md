@@ -1,6 +1,5 @@
 ---
-description: StreamKeys Extension - Debug Logging
-alwaysApply: true
+description: Debug logging system and console forwarding for StreamKeys extension development. Apply this rule when debugging runtime issues, tracing execution flow, reading .cursor/debug.log output, working with the Debug module (src/core/debug.ts), adding or reviewing console.log/console.warn/console.error statements, or troubleshooting timing and state problems. Essential when: user reports browser runtime issues, adding Debug.log/Debug.action/Debug.event calls, implementing Debug.initConsoleForward() in service handlers, wrapping code in if (__DEV__) blocks, or understanding why console output isn't appearing. Relevant keywords: debug, logging, console, trace, runtime error, dev server, __DEV__.
 ---
 
 # Debug Logging

@@ -15,14 +15,20 @@ export interface HandlerConfig {
   getPlaybackTime?: () => number | null;
   /** Custom duration getter for services where video.duration is unreliable */
   getDuration?: () => number | null;
-  /** Get seek buttons for position history tracking and custom seek override */
+  /** Get seek buttons for position history tracking */
   getSeekButtons?: () => { backward: HTMLElement | null; forward: HTMLElement | null };
   /**
-   * Whether direct video.currentTime manipulation is supported.
-   * Set to false for services using MediaSource Extensions (like Disney+)
-   * where currentTime is buffer-relative. Defaults to true.
+   * Seek forward/backward by delta seconds.
+   * If not provided, defaults to video.currentTime += delta.
+   * Disney+ provides custom implementation that clicks native buttons.
    */
-  supportsDirectSeek?: boolean;
+  seekByDelta?: (video: HTMLVideoElement, delta: number) => void;
+  /**
+   * Seek to a specific absolute time (for position restore).
+   * If not provided, defaults to video.currentTime = time.
+   * Disney+ provides custom implementation that clicks timeline.
+   */
+  seekToTime?: (time: number, duration: number) => boolean;
   subtitles?: SubtitleConfig;
   features?: FeatureFlags;
 }
