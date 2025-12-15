@@ -1,6 +1,5 @@
 ---
-description: StreamKeys Extension - Testing
-alwaysApply: true
+description: Testing patterns and conventions for StreamKeys extension using Vitest. Apply this rule when writing new tests, running npm test or npm run test:watch, working with DOM fixtures in resources/dom/, debugging test failures, or understanding the test infrastructure. Covers: co-located test files (*.test.ts next to source), the _test object pattern for exposing internals, fixture setup helpers (loadDOMFixture), and testing constants. Essential when creating tests in src/, modifying vitest.config.ts or vitest.setup.ts, or adding service-specific test files. Relevant keywords: test, vitest, spec, assertion, fixture, mock, DOM testing, test:watch, npm test.
 ---
 
 # Testing

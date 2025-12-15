@@ -45,8 +45,8 @@
       <section class="setting-section">
         <h2>Position History</h2>
         <p class="description">
-          Track playback position and allow restoring to previous positions using the
-          <strong>R</strong> key.
+          Track playback position and allow restoring to previous positions using
+          <span class="nowrap">the <kbd>R</kbd> key.</span>
         </p>
 
         <label class="toggle-row">
@@ -54,6 +54,47 @@
           <input type="checkbox" id="position-history-toggle" class="toggle-input" />
           <span class="toggle-switch"></span>
         </label>
+      </section>
+
+      <section class="setting-section">
+        <h2>Playback Controls</h2>
+
+        <label class="toggle-row">
+          <span class="toggle-label">Capture media keys</span>
+          <input type="checkbox" id="capture-media-keys-toggle" class="toggle-input" />
+          <span class="toggle-switch"></span>
+        </label>
+        <p class="description">
+          Control playback with keyboard media keys. Play/Pause toggles video, Previous/Next track
+          skip backward/forward.
+        </p>
+
+        <label class="toggle-row with-input">
+          <span class="toggle-label">Custom seek time</span>
+          <div class="toggle-controls">
+            <input
+              type="number"
+              id="seek-time-input"
+              class="number-input"
+              min="5"
+              max="120"
+              step="5"
+              value="10"
+            />
+            <span class="input-suffix">sec</span>
+            <input type="checkbox" id="custom-seek-toggle" class="toggle-input" />
+            <span class="toggle-switch"></span>
+          </div>
+        </label>
+
+        <p class="description">
+          Override the default skip duration for arrow keys, media keys, and player buttons.
+        </p>
+
+        <p class="note">
+          <strong>Note:</strong> Custom seek time only works with keyboard shortcuts and media keys.
+          Not supported on Disney+.
+        </p>
       </section>
     </div>
 

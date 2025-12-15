@@ -8,6 +8,11 @@ import { RestoreDialog } from './dialog';
 export interface RestorePositionConfig {
   /** Get the augmented video element (with _streamKeysGetPlaybackTime method) */
   getVideoElement: () => StreamKeysVideoElement | null;
+  /**
+   * Seek to a specific time using service-specific UI (e.g., clicking timeline).
+   * If provided, used instead of direct video.currentTime assignment.
+   */
+  seekToTime?: (time: number, duration: number) => boolean;
 }
 
 export interface RestorePositionAPI {
@@ -17,8 +22,8 @@ export interface RestorePositionAPI {
   closeDialog: () => void;
   /** Check if dialog is open */
   isDialogOpen: () => boolean;
-  /** Record position before seek (for keyboard seeks) */
-  recordBeforeSeek: (preSeekTime: number | undefined) => void;
+  /** Record position before seek (for keyboard seeks). Returns true if debounced. */
+  recordBeforeSeek: (preSeekTime: number | undefined) => boolean;
   /** Mark that a keyboard/button seek is happening */
   setKeyboardSeek: (value: boolean) => void;
   /** Handle keyboard events for the dialog */
@@ -37,12 +42,48 @@ function initRestorePosition(config: RestorePositionConfig): RestorePositionAPI 
   let videoCleanup: CleanupFn | null = null;
   let earlySetupInterval: ReturnType<typeof setInterval> | null = null;
 
-  const { getVideoElement } = config;
+  const { getVideoElement, seekToTime } = config;
+
+  // Track current video to detect when a new video starts
+  // We track both the element AND the source because:
+  // - HBO Max: new video = new DOM element
+  // - Disney+: may reuse element but change src (blob URL)
+  let currentVideo: StreamKeysVideoElement | null = null;
+  let currentVideoSrc: string | null = null;
 
   // Setup video listeners
   const setupVideoListeners = () => {
     const video = getVideoElement();
-    if (video && !video._streamKeysSeekListenerAdded) {
+    if (!video) return;
+
+    const videoSrc = video.src || video.currentSrc || null;
+    const isNewVideo = currentVideo !== video || (videoSrc && currentVideoSrc !== videoSrc);
+
+    if (isNewVideo && currentVideo !== null) {
+      // New video detected - reset history from previous video
+      console.info('[StreamKeys] New video detected, position history cleared');
+
+      // Clean up old video tracking
+      if (videoCleanup) {
+        videoCleanup();
+        videoCleanup = null;
+      }
+
+      // Reset state for new video
+      PositionHistory.reset(state);
+
+      // Clear the flag on old video so new video can be set up
+      if (currentVideo._streamKeysSeekListenerAdded) {
+        currentVideo._streamKeysSeekListenerAdded = false;
+      }
+    }
+
+    // Update tracking references
+    currentVideo = video;
+    currentVideoSrc = videoSrc;
+
+    // Set up tracking if not already done
+    if (!video._streamKeysSeekListenerAdded) {
       videoCleanup = PositionHistory.setupTracking(video, state, getVideoElement);
     }
   };
@@ -76,19 +117,19 @@ function initRestorePosition(config: RestorePositionConfig): RestorePositionAPI 
   return {
     openDialog: () => {
       if (Settings.isPositionHistoryEnabled()) {
-        RestoreDialog.create(state, getVideoElement);
+        RestoreDialog.create(state, getVideoElement, seekToTime);
       }
     },
     closeDialog: RestoreDialog.close,
     isDialogOpen: RestoreDialog.isOpen,
     recordBeforeSeek: (preSeekTime) => {
-      PositionHistory.record(state, preSeekTime);
+      return PositionHistory.record(state, preSeekTime);
     },
     setKeyboardSeek: (value) => {
       state.isKeyboardOrButtonSeek = value;
     },
     handleDialogKeys: (e) => {
-      return RestoreDialog.handleKeys(e, state, getVideoElement);
+      return RestoreDialog.handleKeys(e, state, getVideoElement, seekToTime);
     },
     getState: () => state,
     cleanup: () => {

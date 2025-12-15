@@ -45,12 +45,79 @@ export function createMockProgressBar(valuenow?: string, valuemax?: string): HTM
 }
 
 /**
+ * Attach Shadow DOM to Disney+ custom elements from the fixture.
+ * Call AFTER loadFixture('disney') - the fixture has empty custom elements.
+ *
+ * The fixture contains:
+ * - <quick-rewind class="quick-rewind"></quick-rewind>
+ * - <quick-fast-forward class="quick-fast-forward"></quick-fast-forward>
+ * - <progress-bar></progress-bar>
+ *
+ * Real Disney+ has shadowRoot with info-tooltip > button inside control elements.
+ */
+export function attachDisneyShadowDOM(): {
+  backwardButton: HTMLButtonElement;
+  forwardButton: HTMLButtonElement;
+  setProgressBarTime: (seconds: number) => void;
+} {
+  // Attach Shadow DOM to quick-rewind
+  const quickRewind = document.querySelector('quick-rewind');
+  if (quickRewind && !quickRewind.shadowRoot) {
+    const shadow = quickRewind.attachShadow({ mode: 'open' });
+    const infoTooltip = document.createElement('info-tooltip');
+    const button = document.createElement('button');
+    button.setAttribute('type', 'button');
+    infoTooltip.appendChild(button);
+    shadow.appendChild(infoTooltip);
+  }
+
+  // Attach Shadow DOM to quick-fast-forward
+  const quickFastForward = document.querySelector('quick-fast-forward');
+  if (quickFastForward && !quickFastForward.shadowRoot) {
+    const shadow = quickFastForward.attachShadow({ mode: 'open' });
+    const infoTooltip = document.createElement('info-tooltip');
+    const button = document.createElement('button');
+    button.setAttribute('type', 'button');
+    infoTooltip.appendChild(button);
+    shadow.appendChild(infoTooltip);
+  }
+
+  // Attach Shadow DOM to progress-bar
+  const progressBar = document.querySelector('progress-bar');
+  let thumb: HTMLDivElement | null = null;
+  if (progressBar && !progressBar.shadowRoot) {
+    const shadow = progressBar.attachShadow({ mode: 'open' });
+    thumb = document.createElement('div');
+    thumb.className = 'progress-bar__thumb';
+    thumb.setAttribute('aria-valuenow', '200');
+    thumb.setAttribute('aria-valuemax', '7200');
+    shadow.appendChild(thumb);
+  } else {
+    thumb = progressBar?.shadowRoot?.querySelector('.progress-bar__thumb') ?? null;
+  }
+
+  return {
+    backwardButton: quickRewind?.shadowRoot?.querySelector(
+      'info-tooltip button'
+    ) as HTMLButtonElement,
+    forwardButton: quickFastForward?.shadowRoot?.querySelector(
+      'info-tooltip button'
+    ) as HTMLButtonElement,
+    setProgressBarTime: (seconds: number) => {
+      thumb?.setAttribute('aria-valuenow', String(seconds));
+    },
+  };
+}
+
+/**
  * Extended mock video element with controllable properties
  */
 export interface MockVideoElement extends HTMLVideoElement {
   _setCurrentTime: (time: number) => void;
   _setSeeking: (seeking: boolean) => void;
   _setDuration: (duration: number) => void;
+  /** Simulate playback - updates currentTime and fires timeupdate */
+  _simulatePlayback: (toTime: number) => void;
 }
 
 /**
@@ -108,6 +175,10 @@ export function createMockVideo(options?: {
   video._setDuration = (duration: number) => {
     _duration = duration;
   };
+  video._simulatePlayback = (toTime: number) => {
+    _currentTime = toTime;
+    video.dispatchEvent(new Event('timeupdate'));
+  };
 
   return video;
 }
@@ -121,6 +192,15 @@ export function simulateSeek(video: MockVideoElement, toTime: number): void {
   video.dispatchEvent(new Event('seeking'));
   video._setCurrentTime(toTime);
   video._setSeeking(false);
+  video.dispatchEvent(new Event('seeked'));
+}
+
+/**
+ * Simulate just the seeked event (seek completion).
+ * Use when the seek was initiated elsewhere (e.g., keyboard handler)
+ * and you only need to signal completion.
+ */
+export function simulateSeeked(video: MockVideoElement): void {
   video.dispatchEvent(new Event('seeked'));
 }
 

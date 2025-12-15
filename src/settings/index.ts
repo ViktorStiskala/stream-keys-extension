@@ -4,8 +4,14 @@ import browser from 'webextension-polyfill';
 
 const STORAGE_KEY = 'subtitleLanguages';
 const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
+const CAPTURE_MEDIA_KEYS_KEY = 'captureMediaKeys';
+const CUSTOM_SEEK_ENABLED_KEY = 'customSeekEnabled';
+const SEEK_TIME_KEY = 'seekTime';
 const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
 const DEFAULT_POSITION_HISTORY = true;
+const DEFAULT_CAPTURE_MEDIA_KEYS = true;
+const DEFAULT_CUSTOM_SEEK_ENABLED = false;
+const DEFAULT_SEEK_TIME = 10;
 
 // Use storage.local as fallback if storage.sync fails (Firefox temporary add-ons)
 async function getStorage(): Promise<typeof browser.storage.sync> {
@@ -37,6 +43,10 @@ let addButton: HTMLButtonElement;
 let languageList: HTMLUListElement;
 let restoreDefaultsButton: HTMLButtonElement;
 let positionHistoryToggle: HTMLInputElement;
+let captureMediaKeysToggle: HTMLInputElement;
+let customSeekToggle: HTMLInputElement;
+let seekTimeInput: HTMLInputElement;
+let seekTimeSuffix: HTMLSpanElement;
 
 /**
  * Load preferences from storage
@@ -44,7 +54,13 @@ let positionHistoryToggle: HTMLInputElement;
 async function loadPreferences(): Promise<void> {
   try {
     const store = await storage();
-    const result = await store.get([STORAGE_KEY, POSITION_HISTORY_KEY]);
+    const result = await store.get([
+      STORAGE_KEY,
+      POSITION_HISTORY_KEY,
+      CAPTURE_MEDIA_KEYS_KEY,
+      CUSTOM_SEEK_ENABLED_KEY,
+      SEEK_TIME_KEY,
+    ]);
     languages = (result[STORAGE_KEY] as string[] | undefined) || [...DEFAULT_LANGUAGES];
 
     const positionHistoryEnabled =
@@ -53,12 +69,33 @@ async function loadPreferences(): Promise<void> {
         : DEFAULT_POSITION_HISTORY;
     positionHistoryToggle.checked = positionHistoryEnabled;
 
+    const captureMediaKeys =
+      result[CAPTURE_MEDIA_KEYS_KEY] !== undefined
+        ? (result[CAPTURE_MEDIA_KEYS_KEY] as boolean)
+        : DEFAULT_CAPTURE_MEDIA_KEYS;
+    captureMediaKeysToggle.checked = captureMediaKeys;
+
+    const customSeekEnabled =
+      result[CUSTOM_SEEK_ENABLED_KEY] !== undefined
+        ? (result[CUSTOM_SEEK_ENABLED_KEY] as boolean)
+        : DEFAULT_CUSTOM_SEEK_ENABLED;
+    customSeekToggle.checked = customSeekEnabled;
+
+    const seekTime =
+      result[SEEK_TIME_KEY] !== undefined ? (result[SEEK_TIME_KEY] as number) : DEFAULT_SEEK_TIME;
+    seekTimeInput.value = String(seekTime);
+
+    updateSeekTimeRowState();
     renderList();
   } catch (error) {
     console.error('[StreamKeys] Failed to load preferences:', error);
     // Fall back to defaults on error
     languages = [...DEFAULT_LANGUAGES];
     positionHistoryToggle.checked = DEFAULT_POSITION_HISTORY;
+    captureMediaKeysToggle.checked = DEFAULT_CAPTURE_MEDIA_KEYS;
+    customSeekToggle.checked = DEFAULT_CUSTOM_SEEK_ENABLED;
+    seekTimeInput.value = String(DEFAULT_SEEK_TIME);
+    updateSeekTimeRowState();
     renderList();
   }
 }
@@ -84,6 +121,61 @@ async function savePositionHistorySetting(): Promise<void> {
     await store.set({ [POSITION_HISTORY_KEY]: positionHistoryToggle.checked });
   } catch (error) {
     console.error('[StreamKeys] Failed to save position history setting:', error);
+  }
+}
+
+/**
+ * Save capture media keys setting
+ */
+async function saveCaptureMediaKeysSetting(): Promise<void> {
+  try {
+    const store = await storage();
+    await store.set({ [CAPTURE_MEDIA_KEYS_KEY]: captureMediaKeysToggle.checked });
+  } catch (error) {
+    console.error('[StreamKeys] Failed to save capture media keys setting:', error);
+  }
+}
+
+/**
+ * Save custom seek enabled setting
+ */
+async function saveCustomSeekEnabledSetting(): Promise<void> {
+  try {
+    const store = await storage();
+    await store.set({ [CUSTOM_SEEK_ENABLED_KEY]: customSeekToggle.checked });
+    updateSeekTimeRowState();
+  } catch (error) {
+    console.error('[StreamKeys] Failed to save custom seek enabled setting:', error);
+  }
+}
+
+/**
+ * Save seek time setting
+ */
+async function saveSeekTimeSetting(): Promise<void> {
+  try {
+    const store = await storage();
+    const value = parseInt(seekTimeInput.value, 10);
+    if (!isNaN(value) && value >= 5 && value <= 120) {
+      await store.set({ [SEEK_TIME_KEY]: value });
+    }
+  } catch (error) {
+    console.error('[StreamKeys] Failed to save seek time setting:', error);
+  }
+}
+
+/**
+ * Update the seek time input disabled state based on custom seek toggle
+ */
+function updateSeekTimeRowState(): void {
+  if (customSeekToggle.checked) {
+    seekTimeInput.classList.remove('disabled');
+    seekTimeInput.disabled = false;
+    seekTimeSuffix.classList.remove('disabled');
+  } else {
+    seekTimeInput.classList.add('disabled');
+    seekTimeInput.disabled = true;
+    seekTimeSuffix.classList.add('disabled');
   }
 }
 
@@ -239,6 +331,10 @@ function init(): void {
   languageList = document.getElementById('language-list') as HTMLUListElement;
   restoreDefaultsButton = document.getElementById('restore-defaults-button') as HTMLButtonElement;
   positionHistoryToggle = document.getElementById('position-history-toggle') as HTMLInputElement;
+  captureMediaKeysToggle = document.getElementById('capture-media-keys-toggle') as HTMLInputElement;
+  customSeekToggle = document.getElementById('custom-seek-toggle') as HTMLInputElement;
+  seekTimeInput = document.getElementById('seek-time-input') as HTMLInputElement;
+  seekTimeSuffix = seekTimeInput.nextElementSibling as HTMLSpanElement;
 
   // Event listeners
   addButton.addEventListener('click', addLanguage);
@@ -249,6 +345,26 @@ function init(): void {
     }
   });
   positionHistoryToggle.addEventListener('change', savePositionHistorySetting);
+  captureMediaKeysToggle.addEventListener('change', saveCaptureMediaKeysSetting);
+  customSeekToggle.addEventListener('change', saveCustomSeekEnabledSetting);
+  seekTimeInput.addEventListener('change', saveSeekTimeSetting);
+
+  // Fix for the custom seek toggle row which has both a number input and checkbox
+  // The label's default behavior would focus the first input (number), not the checkbox
+  // So we manually handle clicks on the row to toggle the checkbox
+  const customSeekRow = seekTimeInput.closest('.toggle-row') as HTMLLabelElement;
+  customSeekRow.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    // Don't toggle if clicking on the number input, suffix, or checkbox itself
+    // Checkbox handles its own toggle via native behavior
+    if (target === seekTimeInput || target === seekTimeSuffix || target === customSeekToggle) {
+      return;
+    }
+    // Manually toggle the checkbox (prevent default label behavior which would focus number input)
+    e.preventDefault();
+    customSeekToggle.checked = !customSeekToggle.checked;
+    customSeekToggle.dispatchEvent(new Event('change'));
+  });
 
   // Load preferences
   loadPreferences();

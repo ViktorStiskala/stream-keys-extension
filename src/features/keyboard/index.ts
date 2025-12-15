@@ -1,9 +1,23 @@
 // Keyboard feature - global key event handling
 
 import type { CleanupFn, StreamKeysVideoElement } from '@/types';
-import { Settings } from '@/core/settings';
+import { Debug, Settings } from '@/core';
 import type { RestorePositionAPI } from '@/features/restore-position';
 import type { SubtitlesAPI } from '@/features/subtitles';
+
+// __DEV__ is defined by vite config based on isWatch
+declare const __DEV__: boolean;
+
+/**
+ * Fallback timeout for resetting keyboard seek flag if 'seeked' event never fires (ms).
+ * Used when video element exists but seek doesn't complete normally.
+ */
+const KEYBOARD_SEEK_FLAG_TIMEOUT_MS = 2000;
+
+/**
+ * Timeout for resetting keyboard seek flag when no video element is available (ms).
+ */
+const KEYBOARD_SEEK_FLAG_NO_VIDEO_TIMEOUT_MS = 500;
 
 export interface KeyboardConfig {
   /** Get the augmented video element (with _streamKeysGetPlaybackTime method) */
@@ -11,6 +25,8 @@ export interface KeyboardConfig {
   getButton?: (keyCode: string) => HTMLElement | null;
   restorePosition?: RestorePositionAPI;
   subtitles?: SubtitlesAPI;
+  /** Seek forward/backward by delta seconds */
+  seekByDelta: (video: HTMLVideoElement, delta: number) => void;
 }
 
 export interface KeyboardAPI {
@@ -24,7 +40,91 @@ export interface KeyboardAPI {
  * Initialize the Keyboard feature
  */
 function initKeyboard(config: KeyboardConfig): KeyboardAPI {
-  const { getVideoElement, getButton, restorePosition, subtitles } = config;
+  const { getVideoElement, getButton, restorePosition, subtitles, seekByDelta } = config;
+
+  /**
+   * Track position before seeking for position history.
+   * Uses 'seeked' event to reset flag accurately when seek completes,
+   * with a timeout fallback for edge cases where 'seeked' never fires.
+   *
+   * IMPORTANT: We track and remove previous listeners/timeouts to handle rapid key presses.
+   * Without this, each key press adds a new listener, and the first 'seeked' event
+   * would reset the flag while the user is still pressing keys, causing handleSeeking
+   * to log "UI: Timeline click" and save positions that should be debounced.
+   */
+  let activeResetListener: (() => void) | null = null;
+  let activeResetTimeout: ReturnType<typeof setTimeout> | null = null;
+  let lastTrackedVideo: StreamKeysVideoElement | null = null;
+
+  const trackPositionBeforeSeek = (video: StreamKeysVideoElement | null) => {
+    if (!restorePosition) return;
+
+    // Remove previous listener and timeout
+    if (activeResetListener && lastTrackedVideo) {
+      lastTrackedVideo.removeEventListener('seeked', activeResetListener);
+    }
+    if (activeResetTimeout !== null) {
+      clearTimeout(activeResetTimeout);
+    }
+
+    restorePosition.setKeyboardSeek(true);
+    const currentTime = video?._streamKeysGetStableTime?.();
+    if (currentTime !== undefined) {
+      restorePosition.recordBeforeSeek(currentTime);
+    }
+
+    // Reset flag when seek completes (seeked event) or after timeout as fallback
+    if (video) {
+      lastTrackedVideo = video;
+
+      const resetFlag = () => {
+        restorePosition.setKeyboardSeek(false);
+        if (lastTrackedVideo) {
+          lastTrackedVideo.removeEventListener('seeked', resetFlag);
+        }
+        activeResetListener = null;
+      };
+
+      activeResetListener = resetFlag;
+      video.addEventListener('seeked', resetFlag, { once: true });
+
+      // Fallback timeout in case seeked never fires (e.g., service doesn't emit it)
+      // Only extend timeout if this was a debounced save (rapid key presses)
+      activeResetTimeout = setTimeout(() => {
+        if (lastTrackedVideo && activeResetListener) {
+          lastTrackedVideo.removeEventListener('seeked', activeResetListener);
+        }
+        restorePosition.setKeyboardSeek(false);
+        activeResetListener = null;
+        activeResetTimeout = null;
+      }, KEYBOARD_SEEK_FLAG_TIMEOUT_MS);
+    } else {
+      lastTrackedVideo = null;
+      activeResetListener = null;
+      activeResetTimeout = setTimeout(() => {
+        restorePosition.setKeyboardSeek(false);
+        activeResetTimeout = null;
+      }, KEYBOARD_SEEK_FLAG_NO_VIDEO_TIMEOUT_MS);
+    }
+  };
+
+  // Helper to perform seek action
+  const performSeek = (
+    video: StreamKeysVideoElement | null,
+    direction: 'backward' | 'forward'
+  ): boolean => {
+    if (!video) return false;
+
+    const delta =
+      direction === 'backward'
+        ? -(Settings.isCustomSeekEnabled() ? Settings.getSeekTime() : 10)
+        : Settings.isCustomSeekEnabled()
+          ? Settings.getSeekTime()
+          : 10;
+
+    seekByDelta(video, delta);
+    return true;
+  };
 
   const handleGlobalKeys = (e: KeyboardEvent) => {
     // Handle restore dialog keys first - must capture ESC before it exits fullscreen
@@ -50,6 +150,7 @@ function initKeyboard(config: KeyboardConfig): KeyboardAPI {
 
     // Handle subtitle toggle
     if (e.code === 'KeyC' && subtitles) {
+      if (__DEV__) Debug.action('Key: C', 'toggle subtitles');
       e.preventDefault();
       e.stopPropagation();
       subtitles.toggle();
@@ -58,43 +159,42 @@ function initKeyboard(config: KeyboardConfig): KeyboardAPI {
 
     // Handle position restore dialog
     if (e.code === 'KeyR' && restorePosition && Settings.isPositionHistoryEnabled()) {
+      if (__DEV__) Debug.action('Key: R', 'open restore dialog');
       e.preventDefault();
       e.stopPropagation();
       restorePosition.openDialog();
       return;
     }
 
-    // Handle other keys via config
-    if (!getButton) return;
+    // Handle arrow keys for seeking
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      const video = getVideoElement();
+      const direction = e.code === 'ArrowLeft' ? 'backward' : 'forward';
 
-    const button = getButton(e.code);
-    if (!button) {
+      if (__DEV__) {
+        const seekTime = Settings.isCustomSeekEnabled() ? Settings.getSeekTime() : 10;
+        Debug.action(`Key: ${e.code}`, `seek ${direction} ${seekTime}s`);
+      }
+
+      trackPositionBeforeSeek(video);
+
+      if (performSeek(video, direction)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       return;
     }
 
-    // Record position before keyboard skip actions (debounced)
-    if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && restorePosition) {
-      restorePosition.setKeyboardSeek(true);
-      const video = getVideoElement();
-      const currentTime = video?._streamKeysGetStableTime?.();
-      if (currentTime !== undefined) {
-        restorePosition.recordBeforeSeek(currentTime);
-      }
-      // Reset flag when seek completes (seeked event) or after timeout as fallback
-      if (video) {
-        const resetFlag = () => {
-          restorePosition.setKeyboardSeek(false);
-          video.removeEventListener('seeked', resetFlag);
-        };
-        video.addEventListener('seeked', resetFlag, { once: true });
-        // Fallback timeout in case seeked never fires
-        setTimeout(() => {
-          video.removeEventListener('seeked', resetFlag);
-          restorePosition.setKeyboardSeek(false);
-        }, 2000);
-      } else {
-        setTimeout(() => restorePosition.setKeyboardSeek(false), 500);
-      }
+    // Handle other keys via config (Space, F, etc.)
+    if (!getButton) return;
+
+    const button = getButton(e.code);
+    if (!button) return;
+
+    if (__DEV__) {
+      const keyAction =
+        e.code === 'Space' ? 'play/pause' : e.code === 'KeyF' ? 'fullscreen' : e.code;
+      Debug.action(`Key: ${e.code}`, keyAction);
     }
 
     e.preventDefault();

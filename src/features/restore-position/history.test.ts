@@ -143,12 +143,13 @@ describe('PositionHistory', () => {
         PositionHistory.debouncedSave(state, position1);
         const timeAfterFirstSave = state.lastSeekTime;
 
-        // Advance and save again (debounced)
-        vi.advanceTimersByTime(2000);
+        // Advance within debounce window and save again (debounced)
+        const advanceTime = Math.floor(SEEK_DEBOUNCE_MS * 0.5);
+        vi.advanceTimersByTime(advanceTime);
         PositionHistory.debouncedSave(state, position2);
 
         // Window should be extended (lastSeekTime updated)
-        expect(state.lastSeekTime).toBe(timeAfterFirstSave + 2000);
+        expect(state.lastSeekTime).toBe(timeAfterFirstSave + advanceTime);
         expect(state.positionHistory).toHaveLength(1); // Second save was debounced
       });
 

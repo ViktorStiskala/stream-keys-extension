@@ -6,7 +6,32 @@ on:
       - 'v*'
 
 jobs:
+  build-safari:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Safari extension
+        run: npm run build:safari
+
+      - name: Upload Safari artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: build/production/safari/stream-keys-safari.dmg
+
   release:
+    needs: build-safari
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -55,6 +80,12 @@ jobs:
           cd ../../firefox/extension
           zip -r ../../stream-keys-firefox.zip .
 
+      - name: Download Safari artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: safari-extension
+          path: build/production/safari
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -62,4 +93,5 @@ jobs:
           files: |
             build/production/stream-keys-chrome.zip
             build/production/stream-keys-firefox.zip
+            build/production/safari/stream-keys-safari.dmg
           generate_release_notes: true

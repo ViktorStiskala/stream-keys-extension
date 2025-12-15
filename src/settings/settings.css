@@ -33,7 +33,7 @@ body {
 }
 
 .container {
-  max-width: 600px;
+  max-width: 550px;
   margin: 0 auto;
   padding: 40px 24px;
 }
@@ -53,33 +53,59 @@ h1 {
   border: 1px solid var(--border);
 }
 
+.setting-section + .setting-section {
+  margin-top: 24px;
+}
+
 h2 {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 12px;
+  padding: 0 4px;
   color: var(--text-primary);
 }
 
 .description {
   color: var(--text-secondary);
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding: 0 4px;
 }
 
 .description strong {
   color: var(--text-primary);
 }
 
+.nowrap {
+  white-space: nowrap;
+}
+
+.description kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 var(--border);
+}
+
 .note {
   color: var(--text-secondary);
   font-size: 13px;
-  margin-bottom: 20px;
+  margin: 0 4px 20px 4px;
   padding: 10px 14px;
   background: rgba(233, 69, 96, 0.08);
   border-left: 3px solid var(--accent);
   border-radius: 0 6px 6px 0;
 }
 
+.note strong {
+  padding: 0;
+}
 /* Add language form */
 .add-language {
   display: flex;
@@ -267,6 +293,7 @@ h2 {
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.2s;
+  margin-bottom: 8px;
 }
 
 .toggle-row:hover {
@@ -319,4 +346,62 @@ h2 {
 
 .toggle-input:focus + .toggle-switch {
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+}
+
+/* Toggle row with inline input */
+.toggle-row.with-input {
+  margin-top: 4px;
+}
+
+.toggle-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-suffix {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-right: 8px;
+}
+
+.toggle-row.with-input .number-input {
+  transition:
+    opacity 0.2s,
+    border-color 0.2s;
+}
+
+.toggle-row.with-input .number-input.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.toggle-row.with-input .input-suffix.disabled {
+  opacity: 0.4;
+}
+
+/* Number input */
+.number-input {
+  width: 80px;
+  padding: 8px 12px;
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.number-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+}
+
+.number-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -5,6 +5,9 @@ import type { StreamKeysSettings } from '@/types';
 const DEFAULT_SETTINGS: StreamKeysSettings = {
   subtitleLanguages: ['English', 'English [CC]', 'English CC'],
   positionHistoryEnabled: true,
+  captureMediaKeys: true,
+  customSeekEnabled: false,
+  seekTime: 10,
 };
 
 /**
@@ -28,9 +31,33 @@ function isPositionHistoryEnabled(): boolean {
   return getSettings().positionHistoryEnabled !== false;
 }
 
+/**
+ * Check if media keys capture is enabled
+ */
+function isMediaKeysCaptureEnabled(): boolean {
+  return getSettings().captureMediaKeys !== false;
+}
+
+/**
+ * Check if custom seek time is enabled
+ */
+function isCustomSeekEnabled(): boolean {
+  return getSettings().customSeekEnabled === true;
+}
+
+/**
+ * Get the custom seek time in seconds
+ */
+function getSeekTime(): number {
+  return getSettings().seekTime ?? 10;
+}
+
 // Public API
 export const Settings = {
   get: getSettings,
   getSubtitlePreferences,
   isPositionHistoryEnabled,
+  isMediaKeysCaptureEnabled,
+  isCustomSeekEnabled,
+  getSeekTime,
 };

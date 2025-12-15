@@ -111,6 +111,15 @@ function initHboMaxHandler(): void {
 
     getPlayer,
 
+    getSeekButtons: () => ({
+      backward: document.querySelector<HTMLElement>(
+        'button[data-testid="player-ux-skip-back-button"]'
+      ),
+      forward: document.querySelector<HTMLElement>(
+        'button[data-testid="player-ux-skip-forward-button"]'
+      ),
+    }),
+
     getButton: getButtonForKey,
 
     setupPlayerFocus: (_player: HTMLElement) => {

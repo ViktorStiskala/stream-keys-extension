@@ -170,6 +170,49 @@ function resetCache(): void {
 }
 
 /**
+ * Seek to a specific time by clicking on the Disney+ progress bar.
+ * Calculates the correct X position based on time/duration ratio.
+ * @returns true if seek was initiated, false if progress bar not found
+ */
+function seekToTime(time: number, duration: number): boolean {
+  const progressBar = document.querySelector('progress-bar');
+  if (!progressBar) {
+    console.warn('[StreamKeys] Progress bar not found for seek');
+    return false;
+  }
+
+  const rect = progressBar.getBoundingClientRect();
+  if (rect.width === 0) {
+    console.warn('[StreamKeys] Progress bar has zero width');
+    return false;
+  }
+
+  // Calculate click position based on time ratio
+  const ratio = Math.max(0, Math.min(1, time / duration));
+  const clickX = rect.left + ratio * rect.width;
+  const clickY = rect.top + rect.height / 2;
+
+  if (__DEV__) {
+    Debug.log(`Seeking to ${time}s via timeline click at x=${Math.round(clickX)}`);
+  }
+
+  // Create and dispatch mouse events to simulate a click
+  const eventInit: MouseEventInit = {
+    bubbles: true,
+    cancelable: true,
+    clientX: clickX,
+    clientY: clickY,
+    view: window,
+  };
+
+  progressBar.dispatchEvent(new MouseEvent('mousedown', eventInit));
+  progressBar.dispatchEvent(new MouseEvent('mouseup', eventInit));
+  progressBar.dispatchEvent(new MouseEvent('click', eventInit));
+
+  return true;
+}
+
+/**
  * Initialize Disney+ handler
  */
 function initDisneyHandler(): void {
@@ -183,6 +226,22 @@ function initDisneyHandler(): void {
     getPlaybackTime: getDisneyPlaybackTime,
 
     getDuration: getDisneyDuration,
+
+    getSeekButtons: () => ({
+      backward: getShadowRootButton('quick-rewind'),
+      forward: getShadowRootButton('quick-fast-forward'),
+    }),
+
+    // Disney+ uses MSE where video.currentTime is buffer-relative
+    // Seek by clicking native buttons (ignores custom delta, always uses 10s)
+    seekByDelta: (_video, delta) => {
+      const button =
+        delta < 0 ? getShadowRootButton('quick-rewind') : getShadowRootButton('quick-fast-forward');
+      button?.click();
+    },
+
+    // Seek to specific time by clicking timeline (for position restore)
+    seekToTime,
 
     getButton: (keyCode: string): HTMLElement | null => {
       const selector = keyMap[keyCode];
@@ -222,6 +281,8 @@ export const DisneyHandler = {
     getDuration: getDisneyDuration,
     subtitles: subtitleConfig,
     resetCache,
+    /** Seek to time by clicking progress bar */
+    seekToTime,
   },
 };
 

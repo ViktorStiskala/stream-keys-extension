@@ -1,8 +1,11 @@
 // Subtitles feature - toggle subtitles on/off with language preference
 
 import type { SubtitleConfig, SubtitleItem, CleanupFn } from '@/types';
-import { Settings } from '@/core/settings';
+import { Debug, Settings } from '@/core';
 import { Banner } from '@/ui/banner';
+
+// __DEV__ is defined by vite config based on isWatch
+declare const __DEV__: boolean;
 
 export interface SubtitlesConfig {
   subtitles: SubtitleConfig;
@@ -52,6 +55,7 @@ function initSubtitles(config: SubtitlesConfig): SubtitlesAPI {
 
     if (isOn) {
       // Turn off subtitles
+      if (__DEV__) Debug.action('Subtitles: Off');
       subtitles.turnOff();
       Banner.show('Captions: Off');
     } else {
@@ -60,9 +64,11 @@ function initSubtitles(config: SubtitlesConfig): SubtitlesAPI {
       const match = findMatchingLanguage(preferences, available);
 
       if (match) {
+        if (__DEV__) Debug.action('Subtitles: On', match.label);
         subtitles.selectLanguage(match);
         Banner.show(match.label);
       } else {
+        if (__DEV__) Debug.action('Subtitles: On', 'language not found');
         Banner.show('Captions: Language not found, check extension settings');
       }
     }

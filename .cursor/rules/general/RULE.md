@@ -23,6 +23,13 @@ These rules contain critical DOM selectors, Shadow DOM access patterns, and serv
 
 **After changes to source code in `src/`, run linters and tests before completing the task.**
 
+### Hard constraint: `npm *` must run outside sandbox
+
+**All `npm` commands (anything starting with `npm`, e.g. `npm run check`, `npm test`, `npm ci`) MUST be executed without sandbox restrictions** because toolchains commonly need unrestricted access to `node_modules/` and system tooling. In Cursor tool calls, this means:
+
+- Use `required_permissions: ['all']` for `npm *` terminal commands.
+- If an `npm` command fails with `EPERM`/permission errors, rerun it with `required_permissions: ['all']` immediately.
+
 Run `npm run check` to verify:
 - TypeScript type checking (`npm run typecheck`)
 - ESLint linting (`npm run lint`)
@@ -44,11 +51,14 @@ Use `npm run lint:fix` and `npm run format` to auto-fix issues.
 ## Settings & Storage
 
 - Settings stored in `browser.storage.sync` under keys:
-  - `subtitleLanguages`: string[]
-  - `positionHistoryEnabled`: boolean
+  - `subtitleLanguages`: string[] - Preferred subtitle languages in order
+  - `positionHistoryEnabled`: boolean - Enable position restore feature (default: true)
+  - `captureMediaKeys`: boolean - Capture keyboard media keys (default: true)
+  - `customSeekEnabled`: boolean - Use custom seek time instead of default (default: false)
+  - `seekTime`: number - Custom seek time in seconds (default: 10)
 - Default languages: `['English', 'English [CC]', 'English CC']`
 - Settings injected as `window.__streamKeysSettings` before handlers load
-- Access in handlers via `window.__streamKeysSettings`
+- Access in handlers via `window.__streamKeysSettings` or `Settings` module from `@/core`
 - Uses `webextension-polyfill` for cross-browser compatibility
 
 ## Manifest Constraints

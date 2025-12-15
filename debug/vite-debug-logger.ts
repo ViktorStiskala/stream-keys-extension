@@ -21,16 +21,30 @@ function ensureLogFile(): void {
   fs.writeFileSync(logPath, `=== Build: ${new Date().toISOString()} ===\n`);
 }
 
-function writeLog(level: string, source: string, msg: string): void {
-  const line = `[${new Date().toISOString()}] ${level.padEnd(5)} [${source}] ${msg}\n`;
+function writeLog(level: string, source: string, method: string | undefined, msg: string): void {
+  const methodPart = method ? ` [${method}]` : '';
+  const line = `[${new Date().toISOString()}] ${level.padEnd(5)} [${source}]${methodPart} ${msg}\n`;
   fs.appendFileSync(logPath, line);
 }
 
-function printToTerminal(level: string, source: string, msg: string): void {
+function printToTerminal(
+  level: string,
+  source: string,
+  method: string | undefined,
+  msg: string
+): void {
   const timestamp = new Date().toISOString().slice(11, 19); // HH:MM:SS
   const levelColor =
     level === 'ERROR' ? colors.red : level === 'WARN' ? colors.yellow : colors.cyan;
-  const line = `${colors.dim}${timestamp}${colors.reset} ${levelColor}[${source}]${colors.reset} ${msg}`;
+
+  // Different colors for Debug.* vs console.*
+  let methodPart = '';
+  if (method) {
+    const methodColor = method.startsWith('Debug.') ? colors.magenta : colors.green;
+    methodPart = ` ${methodColor}[${method}]${colors.reset}`;
+  }
+
+  const line = `${colors.dim}${timestamp}${colors.reset} ${levelColor}[${source}]${colors.reset}${methodPart} ${msg}`;
   // Use process.stdout.write to bypass any buffering
   process.stdout.write(line + '\n');
 }
@@ -42,7 +56,7 @@ function createPlugin(): Plugin {
     configureServer(server: ViteDevServer) {
       // eslint-disable-next-line no-console
       console.log('[DebugLogger] Middleware registered at /__debug_log');
-      writeLog('INFO', 'server', 'Debug logger middleware started');
+      writeLog('INFO', 'server', undefined, 'Debug logger middleware started');
 
       // CORS middleware for browser log forwarding
       server.middlewares.use('/__debug_log', (req, res) => {
@@ -63,13 +77,13 @@ function createPlugin(): Plugin {
           });
           req.on('end', () => {
             try {
-              const { level, source, message } = JSON.parse(body);
+              const { level, source, method, message } = JSON.parse(body);
               const lvl = level || 'LOG';
               const src = source || 'browser';
               // Print to terminal with colors
-              printToTerminal(lvl, src, message);
+              printToTerminal(lvl, src, method, message);
               // Also write to debug.log file
-              writeLog(lvl, src, message);
+              writeLog(lvl, src, method, message);
             } catch {
               /* ignore parse errors */
             }
@@ -87,17 +101,17 @@ function createPlugin(): Plugin {
       const { info, warn, error } = server.config.logger;
 
       server.config.logger.info = (...args: unknown[]) => {
-        writeLog('INFO', 'vite', args.map(String).join(' '));
+        writeLog('INFO', 'vite', undefined, args.map(String).join(' '));
         info.call(server.config.logger, ...args);
       };
 
       server.config.logger.warn = (...args: unknown[]) => {
-        writeLog('WARN', 'vite', args.map(String).join(' '));
+        writeLog('WARN', 'vite', undefined, args.map(String).join(' '));
         warn.call(server.config.logger, ...args);
       };
 
       server.config.logger.error = (...args: unknown[]) => {
-        writeLog('ERROR', 'vite', args.map(String).join(' '));
+        writeLog('ERROR', 'vite', undefined, args.map(String).join(' '));
         error.call(server.config.logger, ...args);
       };
     },

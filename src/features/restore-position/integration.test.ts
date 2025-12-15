@@ -1,28 +1,35 @@
 /**
- * Integration tests for Restore Position feature
- * Tests the full feature with real DOM fixtures and simulated video events
+ * Integration tests for Restore Position feature.
+ *
+ * Tests the full feature with real DOM fixtures and simulated video events:
+ * - Position History tracking with video events
+ * - Restore Dialog UI rendering and behavior
+ * - Keyboard interactions
+ * - Full integration flow (seek -> save -> dialog -> restore)
+ *
+ * For timing-specific tests (stable time, service-specific behavior),
+ * see timing.test.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  setupTestContext,
+  cleanupTestContext,
+  initAndWaitForReady,
   loadFixture,
-  resetFixture,
-  createMockVideo,
   simulateSeek,
-  simulateVideoLoad,
-  type MockVideoElement,
-} from '@test';
-import { RestorePosition, type RestorePositionAPI } from './index';
-import {
   PositionHistory,
+  RestorePosition,
+  Video,
   SEEK_MIN_DIFF_SECONDS,
   SEEK_DEBOUNCE_MS,
   LOAD_TIME_CAPTURE_DELAY_MS,
-  READY_FOR_TRACKING_DELAY_MS,
-} from './history';
-import { DIALOG_ID, CURRENT_TIME_ID, RELATIVE_TIME_CLASS, RestoreDialog } from './dialog';
-import { Video } from '@/core/video';
-import type { StreamKeysVideoElement } from '@/types';
+  DIALOG_ID,
+  CURRENT_TIME_ID,
+  RELATIVE_TIME_CLASS,
+  type TestContext,
+  type StreamKeysVideoElement,
+} from './test-utils';
 
 // Mock Settings module
 vi.mock('@/core/settings', () => ({
@@ -33,127 +40,71 @@ vi.mock('@/core/settings', () => ({
 }));
 
 describe('Restore Position Integration', () => {
-  let video: MockVideoElement;
-  let restorePositionAPI: RestorePositionAPI;
-  let getVideoElement: () => StreamKeysVideoElement | null;
+  let ctx: TestContext;
 
   beforeEach(() => {
-    resetFixture();
-    vi.useFakeTimers();
-
-    // Create mock video with HBO Max-like setup
-    video = createMockVideo({
-      currentTime: 0,
-      duration: 7200, // 2 hours
-      readyState: 4,
-      src: 'blob:https://play.hbomax.com/test',
-    });
-
-    // Add video to document body
-    document.body.appendChild(video);
-
-    // Create video getter once and reuse
-    getVideoElement = Video.createGetter({
-      getPlayer: () => document.body,
-      getVideo: () => video,
-    });
+    ctx = setupTestContext();
   });
 
   afterEach(() => {
-    restorePositionAPI?.cleanup();
-    RestoreDialog.close();
-    vi.useRealTimers();
-    resetFixture();
+    cleanupTestContext(ctx);
   });
-
-  /**
-   * Helper to initialize RestorePosition and wait for ready state.
-   *
-   * NOTE: Some manual state setup is required because:
-   * 1. jsdom's RAF implementation doesn't properly advance with vi.advanceTimers
-   * 2. The real code uses RAF to update _streamKeysStableTime and _streamKeysLastKnownTime
-   *
-   * The timers DO correctly set _streamKeysReadyForTracking through the real
-   * captureLoadTimeOnce() code path - we just need to advance timers sufficiently.
-   *
-   * The stable/lastKnown times must be set manually because RAF doesn't work in jsdom.
-   */
-  async function initAndWaitForReady(): Promise<void> {
-    restorePositionAPI = RestorePosition.init({ getVideoElement });
-
-    // Simulate realistic video load: starts at 0, then player seeks to resume position
-    const resumePosition = SEEK_MIN_DIFF_SECONDS + 100; // e.g., 115 seconds (1:55)
-    simulateVideoLoad(video, resumePosition);
-
-    // Wait for load time capture + readyForTracking delays
-    // This advances real timers that set _streamKeysReadyForTracking via captureLoadTimeOnce()
-    vi.advanceTimersByTime(LOAD_TIME_CAPTURE_DELAY_MS + READY_FOR_TRACKING_DELAY_MS + 100);
-
-    // Manual setup required: jsdom doesn't properly support requestAnimationFrame
-    // In production, the RAF loop in setupVideoTracking() updates these values every frame.
-    // We must set them manually to simulate the RAF loop's behavior.
-    const augmentedVideo = getVideoElement() as StreamKeysVideoElement;
-    if (augmentedVideo) {
-      augmentedVideo._streamKeysStableTime = augmentedVideo.currentTime;
-      augmentedVideo._streamKeysLastKnownTime = augmentedVideo.currentTime;
-    }
-  }
 
   describe('Position History with real video events', () => {
     it('captures resumed position as load time (not initial 0:00)', async () => {
-      restorePositionAPI = RestorePosition.init({ getVideoElement });
+      ctx.restorePositionAPI = RestorePosition.init({ getVideoElement: ctx.getVideoElement });
 
       // Video loads at 0:00 initially
-      video._setCurrentTime(0);
-      video.dispatchEvent(new Event('canplay'));
+      ctx.video._setCurrentTime(0);
+      ctx.video.dispatchEvent(new Event('canplay'));
 
       // Player auto-resumes to saved position (simulating streaming service behavior)
       const resumePosition = SEEK_MIN_DIFF_SECONDS + 100; // 115 seconds
-      simulateSeek(video, resumePosition);
+      simulateSeek(ctx.video, resumePosition);
 
       // Wait for load time capture delay
       vi.advanceTimersByTime(LOAD_TIME_CAPTURE_DELAY_MS + 100);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI.getState();
       // Load time should be the resumed position, not 0
       expect(state.loadTimePosition).toBe(resumePosition);
     });
 
     it('does NOT capture load time if position is below threshold', async () => {
-      restorePositionAPI = RestorePosition.init({ getVideoElement });
+      ctx.restorePositionAPI = RestorePosition.init({ getVideoElement: ctx.getVideoElement });
 
       // Video stays at position below threshold
-      video._setCurrentTime(SEEK_MIN_DIFF_SECONDS - 5);
-      video.dispatchEvent(new Event('canplay'));
+      ctx.video._setCurrentTime(SEEK_MIN_DIFF_SECONDS - 5);
+      ctx.video.dispatchEvent(new Event('canplay'));
 
       // Wait for load time capture delay
       vi.advanceTimersByTime(LOAD_TIME_CAPTURE_DELAY_MS + 100);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI.getState();
       expect(state.loadTimePosition).toBeNull();
     });
 
     it('does NOT save position during initial resume seek (readyForTracking = false)', async () => {
-      restorePositionAPI = RestorePosition.init({ getVideoElement });
+      ctx.restorePositionAPI = RestorePosition.init({ getVideoElement: ctx.getVideoElement });
 
       // Video loads at 0:00
-      video._setCurrentTime(0);
-      video.dispatchEvent(new Event('canplay'));
+      ctx.video._setCurrentTime(0);
+      ctx.video.dispatchEvent(new Event('canplay'));
 
       // Player auto-resumes - this should NOT save to history
       const resumePosition = SEEK_MIN_DIFF_SECONDS + 100;
-      simulateSeek(video, resumePosition);
+      simulateSeek(ctx.video, resumePosition);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI.getState();
       // No positions should be in history (initial seek is not tracked)
       expect(state.positionHistory).toHaveLength(0);
     });
 
     it('saves position on seeking event when ready for tracking', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
-      const augmentedVideo = getVideoElement() as StreamKeysVideoElement;
+      const state = ctx.restorePositionAPI!.getState();
+      const augmentedVideo = ctx.getVideoElement() as StreamKeysVideoElement;
 
       // Verify video is properly set up
       expect(augmentedVideo._streamKeysReadyForTracking).toBe(true);
@@ -163,7 +114,7 @@ describe('Restore Position Integration', () => {
       // (positions too close to load time are blocked)
       const loadTime = state.loadTimePosition!;
       const preSeekPosition = loadTime + SEEK_MIN_DIFF_SECONDS + 50;
-      video._setCurrentTime(preSeekPosition);
+      ctx.video._setCurrentTime(preSeekPosition);
 
       // Set stable time to current position (this is what RAF loop does)
       augmentedVideo._streamKeysStableTime = preSeekPosition;
@@ -175,81 +126,117 @@ describe('Restore Position Integration', () => {
 
       // User initiates seek to a new position
       const newPosition = preSeekPosition + SEEK_MIN_DIFF_SECONDS + 100;
-      simulateSeek(video, newPosition);
+      simulateSeek(ctx.video, newPosition);
 
       // The pre-seek position should be saved
       expect(state.positionHistory.length).toBeGreaterThanOrEqual(1);
       expect(state.positionHistory[0].time).toBe(preSeekPosition);
     });
 
-    it('debounces rapid seek events', async () => {
-      await initAndWaitForReady();
+    it('debounces rapid keyboard/button seeks (but not timeline seeks)', async () => {
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
-      const augmentedVideo = getVideoElement() as StreamKeysVideoElement;
-      const initialHistoryLength = state.positionHistory.length;
+      const state = ctx.restorePositionAPI!.getState();
+      const augmentedVideo = ctx.getVideoElement() as StreamKeysVideoElement;
+
+      // Clear history for clean test
+      state.positionHistory = [];
 
       // Start from a position that's far from load time
       const loadTime = state.loadTimePosition!;
       const startPosition = loadTime + SEEK_MIN_DIFF_SECONDS + 100;
-      video._setCurrentTime(startPosition);
+      ctx.video._setCurrentTime(startPosition);
       augmentedVideo._streamKeysStableTime = startPosition;
       augmentedVideo._streamKeysLastKnownTime = startPosition;
 
-      // First seek - should save the start position
-      const position1 = startPosition + SEEK_MIN_DIFF_SECONDS + 50;
-      simulateSeek(video, position1);
-      const afterFirstSeek = state.positionHistory.length;
-      expect(afterFirstSeek).toBe(initialHistoryLength + 1);
+      // First keyboard seek - should save the start position
+      ctx.restorePositionAPI!.setKeyboardSeek(true);
+      ctx.restorePositionAPI!.recordBeforeSeek(startPosition);
+      ctx.restorePositionAPI!.setKeyboardSeek(false);
+      expect(state.positionHistory.length).toBe(1);
+      expect(state.positionHistory[0].time).toBe(startPosition);
 
-      // Update stable time to current position
-      augmentedVideo._streamKeysStableTime = position1;
-      augmentedVideo._streamKeysLastKnownTime = position1;
-
-      // Rapid seeks within debounce window - should NOT save additional entries
-      vi.advanceTimersByTime(1000); // Still within 5s window
-      const position2 = position1 + SEEK_MIN_DIFF_SECONDS + 50;
-      simulateSeek(video, position2);
-
+      // Rapid keyboard seeks within debounce window - should NOT save additional entries
+      const position2 = startPosition + SEEK_MIN_DIFF_SECONDS + 50;
       augmentedVideo._streamKeysStableTime = position2;
-      augmentedVideo._streamKeysLastKnownTime = position2;
-      vi.advanceTimersByTime(1000);
-      const position3 = position2 + SEEK_MIN_DIFF_SECONDS + 50;
-      simulateSeek(video, position3);
+      vi.advanceTimersByTime(1000); // Still within 5s window
 
-      // Should still have same number as after first seek (others debounced)
-      expect(state.positionHistory.length).toBe(afterFirstSeek);
+      ctx.restorePositionAPI!.setKeyboardSeek(true);
+      ctx.restorePositionAPI!.recordBeforeSeek(position2);
+      ctx.restorePositionAPI!.setKeyboardSeek(false);
+
+      // Should still have only 1 entry (second was debounced)
+      expect(state.positionHistory.length).toBe(1);
 
       // Wait for debounce to expire
       vi.advanceTimersByTime(SEEK_DEBOUNCE_MS + 1000);
+
+      // New keyboard seek should now save
+      const position3 = position2 + SEEK_MIN_DIFF_SECONDS + 50;
       augmentedVideo._streamKeysStableTime = position3;
-      augmentedVideo._streamKeysLastKnownTime = position3;
 
-      // New seek should now save
-      const position4 = position3 + SEEK_MIN_DIFF_SECONDS + 50;
-      simulateSeek(video, position4);
+      ctx.restorePositionAPI!.setKeyboardSeek(true);
+      ctx.restorePositionAPI!.recordBeforeSeek(position3);
+      ctx.restorePositionAPI!.setKeyboardSeek(false);
 
-      expect(state.positionHistory.length).toBe(afterFirstSeek + 1);
+      expect(state.positionHistory.length).toBe(2);
+      expect(state.positionHistory[1].time).toBe(position3);
+    });
+
+    it('timeline seeks are NOT debounced (each click saves)', async () => {
+      await initAndWaitForReady(ctx);
+
+      const state = ctx.restorePositionAPI!.getState();
+      const augmentedVideo = ctx.getVideoElement() as StreamKeysVideoElement;
+
+      // Clear history for clean test
+      state.positionHistory = [];
+
+      // Start from a position that's far from load time
+      const loadTime = state.loadTimePosition!;
+      const startPosition = loadTime + SEEK_MIN_DIFF_SECONDS + 100;
+      ctx.video._setCurrentTime(startPosition);
+      augmentedVideo._streamKeysStableTime = startPosition;
+      augmentedVideo._streamKeysLastKnownTime = startPosition;
+
+      // First timeline seek
+      const position1 = startPosition + SEEK_MIN_DIFF_SECONDS + 50;
+      simulateSeek(ctx.video, position1);
+      expect(state.positionHistory.length).toBe(1);
+
+      // Update stable time
+      augmentedVideo._streamKeysStableTime = position1;
+      augmentedVideo._streamKeysLastKnownTime = position1;
+
+      // Second timeline seek 1s later - should STILL save (no debounce for timeline)
+      vi.advanceTimersByTime(1000);
+      const position2 = position1 + SEEK_MIN_DIFF_SECONDS + 50;
+      simulateSeek(ctx.video, position2);
+
+      // Both positions should be saved
+      expect(state.positionHistory.length).toBe(2);
+      expect(state.positionHistory[0].time).toBe(startPosition);
+      expect(state.positionHistory[1].time).toBe(position1);
     });
 
     it('keyboard seek uses recordBeforeSeek and sets flag correctly', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
-      const currentPosition = video.currentTime;
+      const state = ctx.restorePositionAPI!.getState();
+      const currentPosition = ctx.video.currentTime;
 
       // Simulate keyboard seek flow
-      restorePositionAPI.setKeyboardSeek(true);
+      ctx.restorePositionAPI!.setKeyboardSeek(true);
       expect(state.isKeyboardOrButtonSeek).toBe(true);
 
       // Record position before seek
-      restorePositionAPI.recordBeforeSeek(currentPosition);
+      ctx.restorePositionAPI!.recordBeforeSeek(currentPosition);
 
       // The flag should still be true
       expect(state.isKeyboardOrButtonSeek).toBe(true);
 
       // Reset flag (as would happen on seeked event)
-      restorePositionAPI.setKeyboardSeek(false);
+      ctx.restorePositionAPI!.setKeyboardSeek(false);
       expect(state.isKeyboardOrButtonSeek).toBe(false);
     });
   });
@@ -260,46 +247,46 @@ describe('Restore Position Integration', () => {
       // Re-append video to the fixture
       const playerContainer = document.querySelector('[data-testid="playerContainer"]');
       if (playerContainer) {
-        playerContainer.appendChild(video);
+        playerContainer.appendChild(ctx.video);
       } else {
-        document.body.appendChild(video);
+        document.body.appendChild(ctx.video);
       }
     });
 
     it('dialog appears when openDialog is called', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
       // Save a position so dialog has something to show
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       const position = SEEK_MIN_DIFF_SECONDS + 200;
       PositionHistory.save(state, position);
 
       // Open dialog
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       const dialog = document.getElementById(DIALOG_ID);
       expect(dialog).not.toBeNull();
     });
 
     it('dialog does NOT appear when no positions are saved', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
       // Clear any positions
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       state.loadTimePosition = null;
       state.positionHistory = [];
 
       // Try to open dialog
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       const dialog = document.getElementById(DIALOG_ID);
       expect(dialog).toBeNull();
     });
 
     it('displays correct number of position entries', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       // Save positions far enough apart
       const basePosition = SEEK_MIN_DIFF_SECONDS + 100;
       PositionHistory.save(state, basePosition);
@@ -310,7 +297,7 @@ describe('Restore Position Integration', () => {
       const expectedCount =
         (state.loadTimePosition !== null ? 1 : 0) + state.positionHistory.length;
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       const dialog = document.getElementById(DIALOG_ID);
       const positionButtons = dialog?.querySelectorAll('button');
@@ -321,9 +308,9 @@ describe('Restore Position Integration', () => {
     });
 
     it('displays correct time labels for positions', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       // Clear existing and add specific positions
       state.positionHistory = [];
       state.loadTimePosition = null;
@@ -332,7 +319,7 @@ describe('Restore Position Integration', () => {
       const testPosition = 100;
       PositionHistory.save(state, testPosition);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       const dialog = document.getElementById(DIALOG_ID);
       expect(dialog).not.toBeNull();
@@ -343,9 +330,9 @@ describe('Restore Position Integration', () => {
     });
 
     it('displays progress bar with correct width percentage', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       state.positionHistory = [];
       state.loadTimePosition = null;
 
@@ -353,7 +340,7 @@ describe('Restore Position Integration', () => {
       const halfwayPosition = 3600;
       PositionHistory.save(state, halfwayPosition);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       const dialog = document.getElementById(DIALOG_ID);
       expect(dialog).not.toBeNull();
@@ -370,17 +357,17 @@ describe('Restore Position Integration', () => {
     });
 
     it('displays current time correctly', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       // Add a position so dialog shows
       PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 100);
 
       // Set video to specific time
       const testTime = 500; // 8:20
-      video._setCurrentTime(testTime);
+      ctx.video._setCurrentTime(testTime);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       // Advance timer to trigger dialog update
       vi.advanceTimersByTime(100);
@@ -393,28 +380,28 @@ describe('Restore Position Integration', () => {
     });
 
     it('shows load time position with "load time" label', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       // Ensure we have a load time position
       expect(state.loadTimePosition).not.toBeNull();
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       const dialog = document.getElementById(DIALOG_ID);
       expect(dialog?.textContent).toContain('load time');
     });
 
     it('shows relative time for history positions', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       state.positionHistory = [];
 
       // Save a position
       PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 200);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       // Advance time to trigger update
       vi.advanceTimersByTime(100);
@@ -433,19 +420,19 @@ describe('Restore Position Integration', () => {
       loadFixture('hbomax');
       const playerContainer = document.querySelector('[data-testid="playerContainer"]');
       if (playerContainer) {
-        playerContainer.appendChild(video);
+        playerContainer.appendChild(ctx.video);
       } else {
-        document.body.appendChild(video);
+        document.body.appendChild(ctx.video);
       }
     });
 
     it('closes dialog on ESC key', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 100);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
       expect(document.getElementById(DIALOG_ID)).not.toBeNull();
 
       // Dispatch ESC key
@@ -454,19 +441,19 @@ describe('Restore Position Integration', () => {
         key: 'Escape',
         bubbles: true,
       });
-      const handled = restorePositionAPI.handleDialogKeys(escEvent);
+      const handled = ctx.restorePositionAPI!.handleDialogKeys(escEvent);
 
       expect(handled).toBe(true);
       expect(document.getElementById(DIALOG_ID)).toBeNull();
     });
 
     it('closes dialog on R key', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 100);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
       expect(document.getElementById(DIALOG_ID)).not.toBeNull();
 
       // Dispatch R key
@@ -475,16 +462,16 @@ describe('Restore Position Integration', () => {
         key: 'r',
         bubbles: true,
       });
-      const handled = restorePositionAPI.handleDialogKeys(rEvent);
+      const handled = ctx.restorePositionAPI!.handleDialogKeys(rEvent);
 
       expect(handled).toBe(true);
       expect(document.getElementById(DIALOG_ID)).toBeNull();
     });
 
     it('selects position on number key press', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       state.positionHistory = [];
       state.loadTimePosition = null;
 
@@ -492,7 +479,7 @@ describe('Restore Position Integration', () => {
       const targetPosition = SEEK_MIN_DIFF_SECONDS + 100;
       PositionHistory.save(state, targetPosition);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
 
       // Press '0' to select first position
       const keyEvent = new KeyboardEvent('keydown', {
@@ -500,22 +487,22 @@ describe('Restore Position Integration', () => {
         key: '0',
         bubbles: true,
       });
-      const handled = restorePositionAPI.handleDialogKeys(keyEvent);
+      const handled = ctx.restorePositionAPI!.handleDialogKeys(keyEvent);
 
       expect(handled).toBe(true);
       // Dialog should close after selection
       expect(document.getElementById(DIALOG_ID)).toBeNull();
       // Video should seek to the position
-      expect(video.currentTime).toBe(targetPosition);
+      expect(ctx.video.currentTime).toBe(targetPosition);
     });
 
     it('does NOT close dialog on modifier + key', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 100);
 
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
       expect(document.getElementById(DIALOG_ID)).not.toBeNull();
 
       // Dispatch Cmd+R (should not close)
@@ -525,7 +512,7 @@ describe('Restore Position Integration', () => {
         metaKey: true,
         bubbles: true,
       });
-      const handled = restorePositionAPI.handleDialogKeys(cmdREvent);
+      const handled = ctx.restorePositionAPI!.handleDialogKeys(cmdREvent);
 
       expect(handled).toBe(false);
       expect(document.getElementById(DIALOG_ID)).not.toBeNull();
@@ -537,30 +524,30 @@ describe('Restore Position Integration', () => {
       loadFixture('hbomax');
       const playerContainer = document.querySelector('[data-testid="playerContainer"]');
       if (playerContainer) {
-        playerContainer.appendChild(video);
+        playerContainer.appendChild(ctx.video);
       } else {
-        document.body.appendChild(video);
+        document.body.appendChild(ctx.video);
       }
     });
 
     it('seek -> save -> dialog -> restore cycle', async () => {
       // 1. Initialize and wait for ready
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
-      const augmentedVideo = getVideoElement() as StreamKeysVideoElement;
+      const state = ctx.restorePositionAPI!.getState();
+      const augmentedVideo = ctx.getVideoElement() as StreamKeysVideoElement;
       const loadTimePosition = state.loadTimePosition;
       expect(loadTimePosition).not.toBeNull();
 
       // 2. Move to a position far from load time and set stable time
       const preSeekPosition = loadTimePosition! + SEEK_MIN_DIFF_SECONDS + 100;
-      video._setCurrentTime(preSeekPosition);
+      ctx.video._setCurrentTime(preSeekPosition);
       augmentedVideo._streamKeysStableTime = preSeekPosition;
       augmentedVideo._streamKeysLastKnownTime = preSeekPosition;
 
       // 3. User seeks to a new position
       const userSeekTarget = preSeekPosition + SEEK_MIN_DIFF_SECONDS + 500;
-      simulateSeek(video, userSeekTarget);
+      simulateSeek(ctx.video, userSeekTarget);
 
       // 4. Verify position was saved
       expect(state.positionHistory.length).toBeGreaterThan(0);
@@ -570,10 +557,10 @@ describe('Restore Position Integration', () => {
       augmentedVideo._streamKeysStableTime = userSeekTarget;
       augmentedVideo._streamKeysLastKnownTime = userSeekTarget;
       const secondSeekTarget = userSeekTarget + SEEK_MIN_DIFF_SECONDS + 200;
-      simulateSeek(video, secondSeekTarget);
+      simulateSeek(ctx.video, secondSeekTarget);
 
       // 6. Open dialog
-      restorePositionAPI.openDialog();
+      ctx.restorePositionAPI!.openDialog();
       const dialog = document.getElementById(DIALOG_ID);
       expect(dialog).not.toBeNull();
 
@@ -588,22 +575,22 @@ describe('Restore Position Integration', () => {
         key: '0',
         bubbles: true,
       });
-      restorePositionAPI.handleDialogKeys(keyEvent);
+      ctx.restorePositionAPI!.handleDialogKeys(keyEvent);
 
       // 9. Verify video was restored
-      expect(video.currentTime).toBe(firstPosition.time);
+      expect(ctx.video.currentTime).toBe(firstPosition.time);
       expect(document.getElementById(DIALOG_ID)).toBeNull();
     });
 
     it('toggle dialog with R key', async () => {
-      await initAndWaitForReady();
+      await initAndWaitForReady(ctx);
 
-      const state = restorePositionAPI.getState();
+      const state = ctx.restorePositionAPI!.getState();
       PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 100);
 
       // Open dialog
-      restorePositionAPI.openDialog();
-      expect(restorePositionAPI.isDialogOpen()).toBe(true);
+      ctx.restorePositionAPI!.openDialog();
+      expect(ctx.restorePositionAPI!.isDialogOpen()).toBe(true);
 
       // Close with R key
       const closeEvent = new KeyboardEvent('keydown', {
@@ -611,8 +598,101 @@ describe('Restore Position Integration', () => {
         key: 'r',
         bubbles: true,
       });
-      restorePositionAPI.handleDialogKeys(closeEvent);
-      expect(restorePositionAPI.isDialogOpen()).toBe(false);
+      ctx.restorePositionAPI!.handleDialogKeys(closeEvent);
+      expect(ctx.restorePositionAPI!.isDialogOpen()).toBe(false);
+    });
+  });
+
+  describe('Video change detection', () => {
+    it('clears position history when video source changes (Disney+ pattern)', async () => {
+      await initAndWaitForReady(ctx);
+
+      const state = ctx.restorePositionAPI!.getState();
+      const loadTime = state.loadTimePosition!;
+
+      // Save positions far from load time (load time is ~115s)
+      // Need to be at least SEEK_MIN_DIFF_SECONDS (15s) apart from load time and each other
+      PositionHistory.save(state, loadTime + 50);
+      PositionHistory.save(state, loadTime + 100);
+      expect(state.positionHistory.length).toBe(2);
+      expect(state.loadTimePosition).not.toBeNull();
+
+      // Simulate video source change (like navigating to new video on Disney+)
+      // Disney+ reuses the same video element but changes the blob src
+      ctx.video.src = 'blob:https://disneyplus.com/new-video-' + Date.now();
+      ctx.video.dispatchEvent(new Event('loadedmetadata'));
+
+      // Wait for setup interval to detect the change
+      vi.advanceTimersByTime(1100);
+
+      // History from previous video should be cleared
+      expect(state.positionHistory.length).toBe(0);
+
+      // Load time position is recaptured for the new video (correct behavior)
+      // The same video element is reused, so it recaptures based on current playback
+      expect(state.loadTimePosition).not.toBeNull();
+    });
+
+    it('clears position history when video element changes (HBO Max pattern)', async () => {
+      // HBO Max creates a new video element when navigating to a new video
+      // We need a mutable video reference to test this pattern
+
+      // Create first video
+      let currentVideo: StreamKeysVideoElement = document.createElement(
+        'video'
+      ) as unknown as StreamKeysVideoElement;
+      currentVideo.src = 'blob:https://play.hbomax.com/video-1';
+      Object.defineProperty(currentVideo, 'duration', { value: 7200, writable: true });
+      Object.defineProperty(currentVideo, 'readyState', { value: 4, writable: true });
+      currentVideo.currentTime = SEEK_MIN_DIFF_SECONDS + 100; // Resume position
+      document.body.appendChild(currentVideo);
+
+      // Create getter that returns the mutable currentVideo reference
+      const getVideoElement = Video.createGetter({
+        getPlayer: () => document.body,
+        getVideo: () => currentVideo,
+      });
+
+      // Initialize restore position with mutable getter
+      const api = RestorePosition.init({ getVideoElement });
+
+      // Simulate video ready
+      currentVideo.dispatchEvent(new Event('canplay'));
+      vi.advanceTimersByTime(LOAD_TIME_CAPTURE_DELAY_MS + 600);
+
+      const state = api.getState();
+      const loadTime = state.loadTimePosition!;
+
+      // Save a position
+      PositionHistory.save(state, loadTime + 50);
+      expect(state.positionHistory.length).toBe(1);
+      expect(state.loadTimePosition).not.toBeNull();
+
+      // HBO Max pattern: Remove old video, create new video element
+      const oldVideo = currentVideo;
+      oldVideo.remove();
+
+      // Create new video element (HBO Max does this when navigating)
+      currentVideo = document.createElement('video') as unknown as StreamKeysVideoElement;
+      currentVideo.src = 'blob:https://play.hbomax.com/video-2-different';
+      Object.defineProperty(currentVideo, 'duration', { value: 3600, writable: true });
+      Object.defineProperty(currentVideo, 'readyState', { value: 4, writable: true });
+      currentVideo.currentTime = 60; // New video starts at 1:00
+      document.body.appendChild(currentVideo);
+
+      // Wait for setup interval to detect the new video element
+      vi.advanceTimersByTime(1100);
+
+      // History from previous video should be cleared
+      expect(state.positionHistory.length).toBe(0);
+
+      // Load time position is recaptured for the new video (60s)
+      // This is correct behavior - the new video's position is captured
+      expect(state.loadTimePosition).toBe(60);
+
+      // Cleanup
+      api.cleanup();
+      currentVideo.remove();
     });
   });
 });

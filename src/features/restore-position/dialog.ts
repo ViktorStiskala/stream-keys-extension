@@ -2,10 +2,13 @@
 
 import type { StreamKeysVideoElement } from '@/types';
 import { Banner } from '@/ui/banner';
-import { Video } from '@/core/video';
+import { Debug, Video } from '@/core';
 import { Styles } from '@/ui/styles/variables';
 import { DialogStyles } from './styles';
 import { PositionHistory, type PositionHistoryState, type RestorePosition } from './history';
+
+// __DEV__ is defined by vite config based on isWatch
+declare const __DEV__: boolean;
 
 // Exported for testing
 export const DIALOG_ID = 'streamkeys-restore-dialog';
@@ -37,14 +40,35 @@ function isDialogOpen(): boolean {
   return restoreDialog !== null;
 }
 
+/** Callback type for service-specific seeking */
+type SeekToTimeCallback = (time: number, duration: number) => boolean;
+
 /**
- * Restore video to a specific position
+ * Restore video to a specific position.
+ * Uses seekToTime callback if provided (for services like Disney+),
+ * otherwise falls back to direct video.currentTime assignment.
  */
-function restorePosition(video: StreamKeysVideoElement | null, time: number): void {
-  if (video) {
-    video.currentTime = time;
-    Banner.show(`Restored to ${Video.formatTime(time)}`);
+function restorePosition(
+  video: StreamKeysVideoElement | null,
+  time: number,
+  seekToTime?: SeekToTimeCallback
+): void {
+  if (!video) return;
+
+  // Use service-specific seeking if provided (e.g., Disney+ timeline click)
+  if (seekToTime) {
+    const duration = video._streamKeysGetDuration?.() ?? video.duration;
+    const success = seekToTime(time, duration);
+    if (success) {
+      Banner.show(`Restored to ${Video.formatTime(time)}`);
+      return;
+    }
+    // Fall through to direct seek if callback fails
   }
+
+  // Default: direct video.currentTime assignment
+  video.currentTime = time;
+  Banner.show(`Restored to ${Video.formatTime(time)}`);
 }
 
 /**
@@ -98,6 +122,7 @@ function createPositionItem(
   item.appendChild(progressBar);
 
   item.onclick = (e) => {
+    if (__DEV__) Debug.action(`UI: Position ${keyNumber} clicked`, pos.label);
     e.preventDefault();
     e.stopPropagation();
     onClick();
@@ -112,7 +137,8 @@ function createPositionItem(
  */
 function createRestoreDialog(
   historyState: PositionHistoryState,
-  getVideoElement: () => StreamKeysVideoElement | null
+  getVideoElement: () => StreamKeysVideoElement | null,
+  seekToTime?: SeekToTimeCallback
 ): void {
   // Toggle behavior - close if already open
   if (restoreDialog) {
@@ -149,6 +175,7 @@ function createRestoreDialog(
   closeButton.onmouseenter = () => (closeButton.style.color = Styles.vars.text.primary);
   closeButton.onmouseleave = () => (closeButton.style.color = Styles.vars.text.secondary);
   closeButton.onclick = (e) => {
+    if (__DEV__) Debug.action('UI: Close button', 'restore dialog');
     e.preventDefault();
     e.stopPropagation();
     closeRestoreDialog();
@@ -183,7 +210,7 @@ function createRestoreDialog(
 
   allPositions.forEach((pos, index) => {
     const item = createPositionItem(index, pos, videoDuration, () => {
-      restorePosition(video, pos.time);
+      restorePosition(video, pos.time, seekToTime);
       closeRestoreDialog();
     });
     list.appendChild(item);
@@ -238,7 +265,8 @@ function createRestoreDialog(
 function handleRestoreDialogKeys(
   e: KeyboardEvent,
   historyState: PositionHistoryState,
-  getVideoElement: () => StreamKeysVideoElement | null
+  getVideoElement: () => StreamKeysVideoElement | null,
+  seekToTime?: SeekToTimeCallback
 ): boolean {
   if (!restoreDialog) return false;
 
@@ -247,6 +275,7 @@ function handleRestoreDialogKeys(
 
   // Handle Escape - close dialog
   if (e.code === 'Escape') {
+    if (__DEV__) Debug.action('Key: Escape', 'close restore dialog');
     e.preventDefault();
     e.stopPropagation();
     closeRestoreDialog();
@@ -255,6 +284,7 @@ function handleRestoreDialogKeys(
 
   // Handle R key - close dialog
   if (e.code === 'KeyR') {
+    if (__DEV__) Debug.action('Key: R', 'close restore dialog');
     e.preventDefault();
     e.stopPropagation();
     closeRestoreDialog();
@@ -271,8 +301,9 @@ function handleRestoreDialogKeys(
     const position = allPositions[keyNum];
 
     if (position) {
+      if (__DEV__) Debug.action(`Key: ${keyNum}`, `restore to ${position.label}`);
       const video = getVideoElement();
-      restorePosition(video, position.time);
+      restorePosition(video, position.time, seekToTime);
       closeRestoreDialog();
     }
     return true;

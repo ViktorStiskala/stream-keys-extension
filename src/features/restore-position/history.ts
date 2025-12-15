@@ -1,17 +1,19 @@
 // Position history state management
 
 import type { PositionEntry, StreamKeysVideoElement } from '@/types';
-import { Settings } from '@/core/settings';
-import { Video } from '@/core/video';
+import { Debug, Settings, Video } from '@/core';
+
+// __DEV__ is defined by vite config based on isWatch
+declare const __DEV__: boolean;
 
 // Constants
 export const SEEK_MAX_HISTORY = 3;
 export const SEEK_MIN_DIFF_SECONDS = 15;
-export const SEEK_DEBOUNCE_MS = 5000;
+export const SEEK_DEBOUNCE_MS = 2000;
 // Interval for scheduling stable time updates (how often we capture a value)
-const STABLE_TIME_SCHEDULE_INTERVAL_MS = 200;
+export const STABLE_TIME_SCHEDULE_INTERVAL_MS = 200;
 // Delay before a captured value becomes "stable" (guarantees pre-seek value)
-const STABLE_TIME_DELAY_MS = 500;
+export const STABLE_TIME_DELAY_MS = 500;
 // Delay before capturing load time position (allows player auto-resume to complete)
 export const LOAD_TIME_CAPTURE_DELAY_MS = 1000;
 // Delay after load time capture before tracking seeks (avoids capturing initial seeks)
@@ -32,6 +34,16 @@ function createPositionHistoryState(): PositionHistoryState {
     lastSeekTime: 0,
     isKeyboardOrButtonSeek: false,
   };
+}
+
+/**
+ * Reset position history state (used when a new video is detected)
+ */
+function resetState(state: PositionHistoryState): void {
+  state.positionHistory = [];
+  state.loadTimePosition = null;
+  state.lastSeekTime = 0;
+  state.isKeyboardOrButtonSeek = false;
 }
 
 /**
@@ -101,16 +113,17 @@ function debouncedSavePosition(state: PositionHistoryState, time: number): boole
 }
 
 /**
- * Record position before a seek (with debouncing for keyboard seeks)
+ * Record position before a seek (with debouncing for keyboard seeks).
+ * @returns true if the save was debounced (skipped), false if save was attempted
  */
 function recordPositionBeforeSeek(
   state: PositionHistoryState,
   preSeekTime: number | undefined
-): void {
-  if (!Settings.isPositionHistoryEnabled()) return;
-  if (preSeekTime === undefined || preSeekTime === null) return;
+): boolean {
+  if (!Settings.isPositionHistoryEnabled()) return false;
+  if (preSeekTime === undefined || preSeekTime === null) return false;
 
-  debouncedSavePosition(state, preSeekTime);
+  return debouncedSavePosition(state, preSeekTime);
 }
 
 /**
@@ -166,6 +179,9 @@ function setupVideoTracking(
   video._streamKeysPlaybackStarted = false;
   video._streamKeysReadyForTracking = false;
 
+  let loadTimeCaptureTimeout: number | null = null;
+  let readyForTrackingTimeout: number | null = null;
+
   /**
    * Get the actual playback time using the video's augmented method.
    */
@@ -180,12 +196,16 @@ function setupVideoTracking(
     const stableTime = video._streamKeysGetStableTime?.();
     if (stableTime !== undefined && video._streamKeysReadyForTracking) {
       if (state.isKeyboardOrButtonSeek) {
-        // Keyboard seeks are handled by recordPositionBeforeSeek with debouncing
+        // Keyboard/button seeks are handled by recordPositionBeforeSeek with debouncing
         return;
       }
 
-      // UI buttons and timeline clicks: save using stable time with debouncing
-      debouncedSavePosition(state, stableTime);
+      // Timeline clicks: save directly without debouncing.
+      // Each timeline click is a deliberate user action that should be recorded.
+      // (Debouncing is only needed for keyboard seeks to prevent rapid key presses
+      // from filling history)
+      if (__DEV__) Debug.action('UI: Timeline click', `from ${Video.formatTime(stableTime)}`);
+      savePositionToHistory(state, stableTime);
     }
   };
 
@@ -198,8 +218,9 @@ function setupVideoTracking(
 
   // Capture load time position
   const captureLoadTimeOnce = () => {
-    if (state.loadTimePosition === null) {
-      setTimeout(() => {
+    if (state.loadTimePosition === null && loadTimeCaptureTimeout === null) {
+      loadTimeCaptureTimeout = window.setTimeout(() => {
+        loadTimeCaptureTimeout = null;
         const actualTime = getActualPlaybackTime(video);
 
         if (state.loadTimePosition === null && actualTime >= SEEK_MIN_DIFF_SECONDS) {
@@ -209,21 +230,28 @@ function setupVideoTracking(
           );
         }
 
-        setTimeout(() => {
-          if (!video._streamKeysReadyForTracking) {
-            video._streamKeysReadyForTracking = true;
-            console.info('[StreamKeys] Ready to track seeks');
-          }
-        }, READY_FOR_TRACKING_DELAY_MS);
+        if (readyForTrackingTimeout === null) {
+          readyForTrackingTimeout = window.setTimeout(() => {
+            readyForTrackingTimeout = null;
+            if (!video._streamKeysReadyForTracking) {
+              video._streamKeysReadyForTracking = true;
+              console.info('[StreamKeys] Ready to track seeks');
+            }
+          }, READY_FOR_TRACKING_DELAY_MS);
+        }
       }, LOAD_TIME_CAPTURE_DELAY_MS);
     }
   };
 
-  // After seek completes, sync both times to current position
+  // After seek completes, sync last known time but preserve stable time
+  // The stable time will be updated by the RAF loop with the proper 500ms delay
+  // This ensures that rapid consecutive seeks don't corrupt the stable time
   const handleSeeked = () => {
     const currentTime = getActualPlaybackTime(video);
     video._streamKeysLastKnownTime = currentTime;
-    video._streamKeysStableTime = currentTime;
+    // Note: We intentionally do NOT update _streamKeysStableTime here
+    // The RAF loop will update it with proper delay, ensuring it always
+    // reflects a position from 500ms ago (guaranteed pre-seek value)
 
     if (!video._streamKeysReadyForTracking) {
       captureLoadTimeOnce();
@@ -239,7 +267,11 @@ function setupVideoTracking(
 
   // Initialize if video is already loaded
   if (video.readyState >= 1) {
-    video._streamKeysLastKnownTime = getActualPlaybackTime(video);
+    const initialTime = getActualPlaybackTime(video);
+    video._streamKeysLastKnownTime = initialTime;
+    // Initialize stable time to ensure fallback chain always has a valid value
+    // This prevents the first seek from using _streamKeysLastKnownTime fallback
+    video._streamKeysStableTime = initialTime;
   }
   if (video.readyState >= 3) {
     captureLoadTimeOnce();
@@ -252,6 +284,7 @@ function setupVideoTracking(
   // _streamKeysStableTime: delayed by 500ms, guaranteed to be pre-seek value
   let trackingFrame: number | null = null;
   let lastStableSchedule = 0;
+  let stableTimeInitialized = video._streamKeysStableTime !== undefined;
 
   const track = () => {
     const currentVideo = getVideoElement();
@@ -260,6 +293,13 @@ function setupVideoTracking(
 
       // Always update current time
       currentVideo._streamKeysLastKnownTime = newTime;
+
+      // Initialize stable time on first tracking frame if not already set
+      // This ensures we always have a valid stable time before first seek
+      if (!stableTimeInitialized) {
+        currentVideo._streamKeysStableTime = newTime;
+        stableTimeInitialized = true;
+      }
 
       // Schedule stable time update with delay (throttled to every ~200ms)
       // The captured value is passed to setTimeout, so it's frozen at this moment
@@ -286,6 +326,17 @@ function setupVideoTracking(
     video.removeEventListener('seeking', handleSeeking);
     video.removeEventListener('seeked', handleSeeked);
     video.removeEventListener('timeupdate', handleTimeUpdate);
+    video.removeEventListener('canplay', captureLoadTimeOnce);
+    video.removeEventListener('playing', captureLoadTimeOnce);
+    video._streamKeysSeekListenerAdded = false;
+    if (loadTimeCaptureTimeout !== null) {
+      clearTimeout(loadTimeCaptureTimeout);
+      loadTimeCaptureTimeout = null;
+    }
+    if (readyForTrackingTimeout !== null) {
+      clearTimeout(readyForTrackingTimeout);
+      readyForTrackingTimeout = null;
+    }
     if (trackingFrame !== null) {
       cancelAnimationFrame(trackingFrame);
     }
@@ -295,6 +346,8 @@ function setupVideoTracking(
 // Public API
 export const PositionHistory = {
   createState: createPositionHistoryState,
+  /** Reset state when a new video is detected */
+  reset: resetState,
   save: savePositionToHistory,
   record: recordPositionBeforeSeek,
   getPositions: getRestorePositions,

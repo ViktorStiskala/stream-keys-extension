@@ -23,6 +23,9 @@ export interface PositionEntry {
 export interface StreamKeysSettings {
   subtitleLanguages: string[];
   positionHistoryEnabled: boolean;
+  captureMediaKeys: boolean;
+  customSeekEnabled: boolean;
+  seekTime: number;
 }
 
 // Feature flags
@@ -31,24 +34,6 @@ export interface FeatureFlags {
   restorePosition?: boolean;
   keyboard?: boolean;
   fullscreenOverlay?: boolean;
-}
-
-// Handler configuration
-export interface HandlerConfig {
-  name: string;
-  getPlayer: () => HTMLElement | null;
-  getButton?: (keyCode: string) => HTMLElement | null;
-  setupPlayerFocus?: (player: HTMLElement) => void;
-  onPlayerSetup?: (player: HTMLElement) => void;
-  getOverlayContainer?: () => HTMLElement;
-  /** Custom video element selector for services with multiple video elements */
-  getVideo?: () => HTMLVideoElement | null;
-  /** Custom playback time getter for services where video.currentTime is unreliable */
-  getPlaybackTime?: () => number | null;
-  /** Custom duration getter for services where video.duration is unreliable */
-  getDuration?: () => number | null;
-  subtitles?: SubtitleConfig;
-  features?: FeatureFlags;
 }
 
 // Global window augmentation for settings

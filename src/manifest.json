@@ -15,6 +15,7 @@
   "permissions": ["webNavigation", "scripting", "storage"],
   "host_permissions": ["https://*.disneyplus.com/*", "https://*.hbomax.com/*"],
   "options_page": "src/settings/settings.html",
+  "action": {},
   "web_accessible_resources": [
     {
       "resources": ["src/services/*.js"],

@@ -1,6 +1,5 @@
 ---
-description: StreamKeys Extension - ES Module Encapsulation Pattern
-alwaysApply: true
+description: ES module encapsulation pattern required for all TypeScript modules in src/. Apply this rule when creating new modules, refactoring code structure, defining public APIs, exporting functions, or reviewing code for proper encapsulation. This pattern mandates: (1) namespace-like const objects for public APIs (e.g., Focus, Player, Keyboard, Video), (2) private helper functions kept as unexported function declarations, (3) TypeScript types/interfaces exported alongside the namespace object. Essential when adding new files to src/core/, src/features/, src/ui/, or src/handlers/ directories. Relevant keywords: export, import, module, public API, private function, namespace, encapsulation, refactor, new file, new module.
 ---
 
 # ES Module Encapsulation Pattern
