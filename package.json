@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run clean && rm -f .chrome-profile/{chrome.pid,SingletonLock,SingletonCookie,SingletonSocket} && vite dev",
-    "dev:firefox": "npm run clean && rm -rf build/dev/firefox/profile && cp -r .firefox-profile build/dev/firefox/profile && BROWSER=firefox vite dev",
+    "dev:firefox": "npm run clean && mkdir -p build/dev/firefox && cp -r .firefox-profile build/dev/firefox/profile && BROWSER=firefox vite dev",
     "build": "vite build",
     "build:firefox": "BROWSER=firefox vite build",
     "build:safari": "BROWSER=safari vite build && xcrun safari-web-extension-converter build/production/safari/extension --project-location build/production/safari/xcode --app-name 'Stream Keys' --bundle-identifier com.streamkeys.extension --no-prompt --no-open && cd build/production/safari/xcode/'Stream Keys' && xcodebuild -scheme 'Stream Keys (macOS)' -configuration Release -derivedDataPath ../DerivedData CODE_SIGN_IDENTITY=- && cd ../.. && rm -rf dmg-contents && mkdir -p dmg-contents && cp -R xcode/DerivedData/Build/Products/Release/'Stream Keys.app' dmg-contents/ && hdiutil create -volname 'Stream Keys' -srcfolder dmg-contents -ov -format UDZO stream-keys-safari.dmg && rm -rf dmg-contents",
@@ -19,6 +19,7 @@
     "check": "npm run typecheck && npm run lint && npm run format:check",
     "pretest": "npm run build",
     "test": "vitest run",
+    "new-version": "vite build --mode development",
     "test:watch": "vitest"
   },
   "devDependencies": {
