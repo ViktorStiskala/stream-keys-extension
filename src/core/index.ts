@@ -1,6 +1,7 @@
 // Core utilities barrel export
 
-export { Debug } from './debug';
+// Use aliased path for Debug to enable compile-time stub swapping in production
+export { Debug } from '@/core/debug';
 export { Guard } from './guard';
 export { Settings } from './settings';
 export { Video, type VideoGetterConfig } from './video';

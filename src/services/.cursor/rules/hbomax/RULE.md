@@ -21,7 +21,18 @@ HBO Max does NOT use Shadow DOM. Access buttons directly via `querySelector`:
 - Primary: `button[data-testid="player-ux-fullscreen-button"]`
 - Fallback: `[class^="ControlsFooterBottomRight"] button:last-child`
 
+### Seek Buttons
+- Backward: `button[data-testid="player-ux-skip-back-button"]`
+- Forward: `button[data-testid="player-ux-skip-forward-button"]`
+
 **Note:** Always implement fallback selectors as `data-testid` attributes may be removed in production builds.
+
+## Seeking
+
+HBO Max uses standard HTML5 video, so `video.currentTime` works correctly. The handler uses default seeking:
+- **Relative seeks**: Direct `video.currentTime += delta` (no custom `seekByDelta` needed)
+- **Absolute seeks**: Direct `video.currentTime = time` (no custom `seekToTime` needed)
+- **Custom seek time**: Works with keyboard shortcuts and media keys
 
 ## Player Elements
 

@@ -60,5 +60,3 @@ User actions are logged with the `[Action]` prefix and include:
 - **Subtitle toggles**: `Subtitles: On/Off`
 
 Use these action logs to reconstruct what the user did and correlate with other log entries to understand the system's response.
-
-$ARGUMENTS

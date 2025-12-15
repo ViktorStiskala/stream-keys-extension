@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -31,3 +34,29 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  build-safari:
+    runs-on: macos-latest
+    name: Build Safari extension
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Safari extension
+        run: npm run build:safari
+
+      - name: Verify Safari build
+        run: |
+          # Verify the DMG was created
+          test -f "build/production/safari/stream-keys-safari.dmg" || { echo "Safari DMG not found"; exit 1; }
+          echo "Safari DMG verified successfully"
+          ls -la build/production/safari/

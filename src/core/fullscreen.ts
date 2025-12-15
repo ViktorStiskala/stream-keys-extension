@@ -3,6 +3,9 @@
 import { Overlay } from '@/ui/overlay';
 import { Focus, type FocusConfig } from './focus';
 
+// Detect Safari (but not Chrome/Chromium which also includes "Safari" in UA)
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 export interface FullscreenConfig extends FocusConfig {
   getOverlayContainer?: () => HTMLElement;
 }
@@ -54,10 +57,13 @@ function createFullscreenHandler(
       // Exiting fullscreen
       state.wasInFullscreen = false;
       setTimeout(() => {
-        const container = config.getOverlayContainer?.();
-        Overlay.createClick(() => Focus.player(config), container);
+        // Safari maintains focus after fullscreen exit, so no overlay needed
+        if (!isSafari) {
+          const container = config.getOverlayContainer?.();
+          Overlay.createClick(() => Focus.player(config), container);
+          console.info('[StreamKeys] Fullscreen exit: Click to focus overlay added');
+        }
         Focus.player(config);
-        console.info('[StreamKeys] Fullscreen exit: Click to focus overlay added');
       }, 100);
     }
   };

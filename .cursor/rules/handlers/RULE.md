@@ -1,5 +1,5 @@
 ---
-description: Handler configuration, feature flags, and position tracking for StreamKeys service handlers. Apply this rule when working with createHandler() in src/handlers/factory.ts, implementing or modifying service handlers in src/services/, configuring feature flags (subtitles, restorePosition, keyboard, fullscreenOverlay), implementing seek button interception, or debugging position history recording. Essential for understanding: getPlayer, getButton, getSeekButtons, supportsDirectSeek, getPlaybackTime, getDuration config properties; the isKeyboardOrButtonSeek flag and its reset strategies (event-based vs timeout); pointerdown vs click event handling; and position history debouncing (keyboard seeks debounced, timeline clicks not). Relevant keywords: handler, createHandler, feature flag, seek, position history, debounce, media keys, button interception.
+description: Handler configuration, feature flags, and position tracking for StreamKeys service handlers. Apply this rule when working with createHandler() in src/handlers/factory.ts, implementing or modifying service handlers in src/services/, configuring feature flags (subtitles, restorePosition, keyboard, fullscreenOverlay), implementing seek button interception, or debugging position history recording. Essential for understanding: getPlayer, getButton, getSeekButtons, seekByDelta, seekToTime, getPlaybackTime, getDuration config properties; the isKeyboardOrButtonSeek flag and its reset strategies (event-based vs timeout); pointerdown vs click event handling; and position history debouncing (keyboard seeks debounced, timeline clicks not). Relevant keywords: handler, createHandler, feature flag, seek, position history, debounce, media keys, button interception.
 ---
 
 # Handler Configuration with Feature Flags
@@ -21,7 +21,8 @@ Service handlers provide a config object to `createHandler()`:
 - `getOverlayContainer`: Container element for click overlay
 - `subtitles`: Subtitle control configuration object
 - `getSeekButtons`: Function returning `{ backward, forward }` button elements for position history tracking and custom seek override
-- `supportsDirectSeek`: Whether direct `video.currentTime` manipulation works. Set to `false` for services using MediaSource Extensions (like Disney+) where currentTime is buffer-relative. Defaults to `true`.
+- `seekByDelta`: Custom function to seek forward/backward by delta seconds. If not provided, defaults to `video.currentTime += delta`. Disney+ provides a custom implementation that clicks native buttons (because `video.currentTime` is buffer-relative due to MediaSource Extensions).
+- `seekToTime`: Custom function to seek to an absolute time (used for position restore). If not provided, defaults to `video.currentTime = time`. Disney+ provides a custom implementation that clicks the timeline at the appropriate position.
 - `getPlaybackTime`: Custom playback time getter for services where `video.currentTime` is unreliable
 - `getDuration`: Custom duration getter for services where `video.duration` is unreliable
 - `getVideo`: Custom video element selector for services with multiple video elements

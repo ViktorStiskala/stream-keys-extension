@@ -57,6 +57,33 @@ document.body.querySelector(selector)?.shadowRoot?.querySelector("info-tooltip b
 
 Available selectors: `toggle-play-pause`, `toggle-fullscreen`, `toggle-mute-button`, `quick-rewind`, `quick-fast-forward`, `restart-playback`.
 
+## Seeking Implementation
+
+Disney+ requires custom seeking implementations because `video.currentTime` is buffer-relative:
+
+### Relative Seeking (seekByDelta)
+
+The handler provides `seekByDelta` that clicks the native quick-rewind/quick-fast-forward buttons:
+```typescript
+seekByDelta: (_video, delta) => {
+  const button = delta < 0 
+    ? getShadowRootButton('quick-rewind') 
+    : getShadowRootButton('quick-fast-forward');
+  button?.click();
+}
+```
+
+**Note:** This ignores the delta value - Disney+ buttons always skip 10 seconds. Custom seek time setting does NOT work on Disney+.
+
+### Absolute Seeking (seekToTime)
+
+For position restore, the handler provides `seekToTime` that simulates a click on the progress bar:
+```typescript
+seekToTime(time: number, duration: number): boolean
+```
+
+This calculates the click position based on `time/duration` ratio and dispatches mousedown/mouseup/click events to the progress bar element.
+
 ## Player Element
 
 - Main player element: `disney-web-player`
@@ -102,6 +129,7 @@ DisneyHandler._test.getPlaybackTime() // Get time from Shadow DOM
 DisneyHandler._test.getDuration()   // Get duration from Shadow DOM
 DisneyHandler._test.subtitles       // Subtitle config object
 DisneyHandler._test.resetCache()    // Reset progress bar cache
+DisneyHandler._test.seekToTime(time, duration) // Seek by clicking progress bar
 ```
 
 ### Shadow DOM Mocking

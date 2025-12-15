@@ -47,20 +47,29 @@ This forwards all `console.log/warn/error` from the page context to the Vite dev
 
 ## Debug Module Architecture
 
-The Debug module (`src/core/debug.ts`) uses a **conditional export pattern** for production safety:
+The Debug module uses **compile-time alias swapping** for complete dead code elimination:
+
+- `src/core/debug.ts` - Full implementation (only bundled in dev)
+- `src/core/debug.stub.ts` - No-op exports (bundled in production)
+
+The swap is configured in `vite.config.ts`:
 
 ```typescript
-// In production (__DEV__ = false):
-export const Debug = DebugStub;  // No-op functions
-
-// In development (__DEV__ = true):
-export const Debug = createDebugImpl();  // Full implementation
+resolve: {
+  alias: {
+    '@/core/debug': resolve(
+      __dirname,
+      isDebugMode ? 'src/core/debug.ts' : 'src/core/debug.stub.ts'
+    ),
+  },
+},
 ```
 
 This ensures:
-- **Complete dead code elimination** - the entire implementation is removed from production builds
+- **Complete dead code elimination** - the entire implementation file is never bundled in production
 - **No debug strings in production** - strings like 'Debug.log', 'DEV_SERVER_URL' never appear
-- **Safe to import** - importing Debug is safe in any file; it resolves to no-ops in production
+- **Safe to import** - importing `@/core/debug` resolves to no-ops in production
+- **No runtime conditional** - the swap happens at build time, not runtime
 
 ## Debug API
 
