@@ -64,7 +64,7 @@ jobs:
       - name: Verify version
         id: version
         run: |
-          MANIFEST_VERSION=$(jq -r '.version' src/manifest.json)
+          MANIFEST_VERSION=$(jq -r '.version' build/production/chrome/extension/manifest.json)
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
           echo "manifest_version=$MANIFEST_VERSION" >> $GITHUB_OUTPUT
           echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
