@@ -19,6 +19,9 @@ export interface PositionEntry {
   savedAt: number;
 }
 
+// Service identifiers
+export type ServiceId = 'disney' | 'hbomax' | 'youtube' | 'bbc';
+
 // Settings types
 export interface StreamKeysSettings {
   subtitleLanguages: string[];
@@ -26,6 +29,7 @@ export interface StreamKeysSettings {
   captureMediaKeys: boolean;
   customSeekEnabled: boolean;
   seekTime: number;
+  enabledServices: Record<ServiceId, boolean>;
 }
 
 // Feature flags

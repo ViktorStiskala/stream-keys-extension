@@ -8,6 +8,12 @@ const DEFAULT_SETTINGS: StreamKeysSettings = {
   captureMediaKeys: true,
   customSeekEnabled: false,
   seekTime: 10,
+  enabledServices: {
+    disney: true,
+    hbomax: true,
+    youtube: true,
+    bbc: true,
+  },
 };
 
 /**

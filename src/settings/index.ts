@@ -1,17 +1,38 @@
 // Settings page - manages subtitle language preferences and position history
 
 import browser from 'webextension-polyfill';
+import type { ServiceId } from '@/types';
 
 const STORAGE_KEY = 'subtitleLanguages';
 const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
 const CAPTURE_MEDIA_KEYS_KEY = 'captureMediaKeys';
 const CUSTOM_SEEK_ENABLED_KEY = 'customSeekEnabled';
 const SEEK_TIME_KEY = 'seekTime';
+const ENABLED_SERVICES_KEY = 'enabledServices';
 const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
 const DEFAULT_POSITION_HISTORY = true;
 const DEFAULT_CAPTURE_MEDIA_KEYS = true;
 const DEFAULT_CUSTOM_SEEK_ENABLED = false;
 const DEFAULT_SEEK_TIME = 10;
+const DEFAULT_ENABLED_SERVICES: Record<ServiceId, boolean> = {
+  disney: true,
+  hbomax: true,
+  youtube: true,
+  bbc: true,
+};
+
+// Service definitions for settings UI
+interface ServiceInfo {
+  id: ServiceId;
+  displayName: string;
+}
+
+const SERVICES: ServiceInfo[] = [
+  { id: 'disney', displayName: 'Disney+' },
+  { id: 'hbomax', displayName: 'HBO Max' },
+  { id: 'youtube', displayName: 'YouTube' },
+  { id: 'bbc', displayName: 'BBC iPlayer' },
+];
 
 // Use storage.local as fallback if storage.sync fails (Firefox temporary add-ons)
 async function getStorage(): Promise<typeof browser.storage.sync> {
@@ -36,8 +57,10 @@ async function storage(): Promise<typeof browser.storage.sync> {
 
 let languages: string[] = [];
 let draggedIndex: number | null = null;
+let enabledServices: Record<ServiceId, boolean> = { ...DEFAULT_ENABLED_SERVICES };
 
 // DOM elements - will be initialized after DOM is ready
+let servicesList: HTMLDivElement;
 let languageInput: HTMLInputElement;
 let addButton: HTMLButtonElement;
 let languageList: HTMLUListElement;
@@ -162,6 +185,69 @@ async function saveSeekTimeSetting(): Promise<void> {
   } catch (error) {
     console.error('[StreamKeys] Failed to save seek time setting:', error);
   }
+}
+
+/**
+ * Load enabled services from storage
+ */
+async function loadEnabledServices(): Promise<void> {
+  try {
+    const store = await storage();
+    const result = await store.get(ENABLED_SERVICES_KEY);
+    enabledServices = (result[ENABLED_SERVICES_KEY] as Record<ServiceId, boolean>) || {
+      ...DEFAULT_ENABLED_SERVICES,
+    };
+    renderServicesList();
+  } catch (error) {
+    console.error('[StreamKeys] Failed to load enabled services:', error);
+    enabledServices = { ...DEFAULT_ENABLED_SERVICES };
+    renderServicesList();
+  }
+}
+
+/**
+ * Save enabled service setting
+ */
+async function saveEnabledService(serviceId: ServiceId, enabled: boolean): Promise<void> {
+  try {
+    enabledServices[serviceId] = enabled;
+    const store = await storage();
+    await store.set({ [ENABLED_SERVICES_KEY]: enabledServices });
+  } catch (error) {
+    console.error('[StreamKeys] Failed to save enabled service setting:', error);
+  }
+}
+
+/**
+ * Render the services list
+ */
+function renderServicesList(): void {
+  servicesList.innerHTML = '';
+
+  SERVICES.forEach((service) => {
+    const label = document.createElement('label');
+    label.className = 'toggle-row';
+
+    const labelText = document.createElement('span');
+    labelText.className = 'toggle-label';
+    labelText.textContent = service.displayName;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'toggle-input';
+    checkbox.checked = enabledServices[service.id] ?? true;
+    checkbox.addEventListener('change', () => {
+      saveEnabledService(service.id, checkbox.checked);
+    });
+
+    const toggleSwitch = document.createElement('span');
+    toggleSwitch.className = 'toggle-switch';
+
+    label.appendChild(labelText);
+    label.appendChild(checkbox);
+    label.appendChild(toggleSwitch);
+    servicesList.appendChild(label);
+  });
 }
 
 /**
@@ -326,6 +412,7 @@ function restoreDefaults(): void {
  */
 function init(): void {
   // Get DOM elements
+  servicesList = document.getElementById('services-list') as HTMLDivElement;
   languageInput = document.getElementById('language-input') as HTMLInputElement;
   addButton = document.getElementById('add-button') as HTMLButtonElement;
   languageList = document.getElementById('language-list') as HTMLUListElement;
@@ -367,6 +454,7 @@ function init(): void {
   });
 
   // Load preferences
+  loadEnabledServices();
   loadPreferences();
 }
 
@@ -378,6 +466,9 @@ export const SettingsPage = {
   addLanguage,
   removeLanguage,
   restoreDefaults,
+  loadEnabledServices,
+  saveEnabledService,
+  renderServicesList,
   init,
 };
 

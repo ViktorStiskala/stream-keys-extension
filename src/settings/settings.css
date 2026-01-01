@@ -405,3 +405,13 @@ h2 {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Services list */
+.services-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.services-list .toggle-row:last-child {
+  margin-bottom: 0;
+}
