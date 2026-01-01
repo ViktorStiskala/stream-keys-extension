@@ -1,20 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Settings } from './settings';
+import {
+  DEFAULT_LANGUAGES,
+  DEFAULT_POSITION_HISTORY,
+  DEFAULT_CAPTURE_MEDIA_KEYS,
+  DEFAULT_CUSTOM_SEEK_ENABLED,
+  DEFAULT_SEEK_TIME,
+  DEFAULT_ENABLED_SERVICES,
+} from '@/types';
 
-// Import the actual defaults from the module to avoid hardcoding
-// We test against window.__streamKeysSettings which mirrors these defaults
+// Use the shared defaults from @/types
 const EXPECTED_DEFAULTS = {
-  subtitleLanguages: ['English', 'English [CC]', 'English CC'],
-  positionHistoryEnabled: true,
-  captureMediaKeys: true,
-  customSeekEnabled: false,
-  seekTime: 10,
-  enabledServices: {
-    disney: true,
-    hbomax: true,
-    youtube: true,
-    bbc: true,
-  },
+  subtitleLanguages: DEFAULT_LANGUAGES,
+  positionHistoryEnabled: DEFAULT_POSITION_HISTORY,
+  captureMediaKeys: DEFAULT_CAPTURE_MEDIA_KEYS,
+  customSeekEnabled: DEFAULT_CUSTOM_SEEK_ENABLED,
+  seekTime: DEFAULT_SEEK_TIME,
+  enabledServices: DEFAULT_ENABLED_SERVICES,
 };
 
 describe('Settings', () => {

@@ -1,7 +1,16 @@
 // Service worker router - injects appropriate handler based on URL
 
 import browser, { WebNavigation } from 'webextension-polyfill';
-import type { ServiceId, StreamKeysSettings } from '@/types';
+import type { ServiceId, ServiceHandler, StreamKeysSettings } from '@/types';
+import {
+  DEFAULT_LANGUAGES,
+  DEFAULT_POSITION_HISTORY,
+  DEFAULT_CAPTURE_MEDIA_KEYS,
+  DEFAULT_CUSTOM_SEEK_ENABLED,
+  DEFAULT_SEEK_TIME,
+  DEFAULT_ENABLED_SERVICES,
+  SERVICE_HANDLERS,
+} from '@/types';
 import { Debug } from '@/core/debug';
 
 // __DEV__ is defined by vite config based on isWatch
@@ -18,17 +27,6 @@ const CAPTURE_MEDIA_KEYS_KEY = 'captureMediaKeys';
 const CUSTOM_SEEK_ENABLED_KEY = 'customSeekEnabled';
 const SEEK_TIME_KEY = 'seekTime';
 const ENABLED_SERVICES_KEY = 'enabledServices';
-const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
-const DEFAULT_POSITION_HISTORY = true;
-const DEFAULT_CAPTURE_MEDIA_KEYS = true;
-const DEFAULT_CUSTOM_SEEK_ENABLED = false;
-const DEFAULT_SEEK_TIME = 10;
-const DEFAULT_ENABLED_SERVICES: Record<ServiceId, boolean> = {
-  disney: true,
-  hbomax: true,
-  youtube: true,
-  bbc: true,
-};
 
 // Use storage.local as fallback if storage.sync fails (Firefox temporary add-ons)
 async function getStorage(): Promise<typeof browser.storage.sync> {
@@ -44,47 +42,10 @@ async function getStorage(): Promise<typeof browser.storage.sync> {
 const injectedTabs = new Map<number, string>();
 
 /**
- * Handler configuration for each supported service
- */
-export interface ServiceHandler {
-  id: ServiceId;
-  urlPattern: string;
-  handlerFile: string;
-  displayName: string;
-}
-
-const handlers: ServiceHandler[] = [
-  {
-    id: 'disney',
-    urlPattern: 'disneyplus.com',
-    handlerFile: 'src/services/disney.js',
-    displayName: 'Disney+',
-  },
-  {
-    id: 'hbomax',
-    urlPattern: 'hbomax.com',
-    handlerFile: 'src/services/hbomax.js',
-    displayName: 'HBO Max',
-  },
-  {
-    id: 'youtube',
-    urlPattern: 'youtube.com',
-    handlerFile: 'src/services/youtube.js',
-    displayName: 'YouTube',
-  },
-  {
-    id: 'bbc',
-    urlPattern: 'bbc.co.uk/iplayer',
-    handlerFile: 'src/services/bbc.js',
-    displayName: 'BBC iPlayer',
-  },
-];
-
-/**
  * Find the handler for a given URL
  */
 function findHandler(url: string): ServiceHandler | undefined {
-  return handlers.find((h) => url.includes(h.urlPattern));
+  return SERVICE_HANDLERS.find((h) => url.includes(h.urlPattern));
 }
 
 /**
@@ -254,7 +215,7 @@ function handleHistoryStateUpdated(details: WebNavigation.OnHistoryStateUpdatedD
 
 // Internal API (for testing/debugging)
 export const Background = {
-  handlers,
+  handlers: SERVICE_HANDLERS,
   findHandler,
   injectHandler,
   tryInjectHandler,

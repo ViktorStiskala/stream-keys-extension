@@ -2,6 +2,15 @@
 
 import browser from 'webextension-polyfill';
 import type { ServiceId } from '@/types';
+import {
+  DEFAULT_LANGUAGES,
+  DEFAULT_POSITION_HISTORY,
+  DEFAULT_CAPTURE_MEDIA_KEYS,
+  DEFAULT_CUSTOM_SEEK_ENABLED,
+  DEFAULT_SEEK_TIME,
+  DEFAULT_ENABLED_SERVICES,
+  SERVICE_HANDLERS,
+} from '@/types';
 
 const STORAGE_KEY = 'subtitleLanguages';
 const POSITION_HISTORY_KEY = 'positionHistoryEnabled';
@@ -9,30 +18,6 @@ const CAPTURE_MEDIA_KEYS_KEY = 'captureMediaKeys';
 const CUSTOM_SEEK_ENABLED_KEY = 'customSeekEnabled';
 const SEEK_TIME_KEY = 'seekTime';
 const ENABLED_SERVICES_KEY = 'enabledServices';
-const DEFAULT_LANGUAGES = ['English', 'English [CC]', 'English CC'];
-const DEFAULT_POSITION_HISTORY = true;
-const DEFAULT_CAPTURE_MEDIA_KEYS = true;
-const DEFAULT_CUSTOM_SEEK_ENABLED = false;
-const DEFAULT_SEEK_TIME = 10;
-const DEFAULT_ENABLED_SERVICES: Record<ServiceId, boolean> = {
-  disney: true,
-  hbomax: true,
-  youtube: true,
-  bbc: true,
-};
-
-// Service definitions for settings UI
-interface ServiceInfo {
-  id: ServiceId;
-  displayName: string;
-}
-
-const SERVICES: ServiceInfo[] = [
-  { id: 'disney', displayName: 'Disney+' },
-  { id: 'hbomax', displayName: 'HBO Max' },
-  { id: 'youtube', displayName: 'YouTube' },
-  { id: 'bbc', displayName: 'BBC iPlayer' },
-];
 
 // Use storage.local as fallback if storage.sync fails (Firefox temporary add-ons)
 async function getStorage(): Promise<typeof browser.storage.sync> {
@@ -224,7 +209,7 @@ async function saveEnabledService(serviceId: ServiceId, enabled: boolean): Promi
 function renderServicesList(): void {
   servicesList.innerHTML = '';
 
-  SERVICES.forEach((service) => {
+  SERVICE_HANDLERS.forEach((service) => {
     const label = document.createElement('label');
     label.className = 'toggle-row';
 
