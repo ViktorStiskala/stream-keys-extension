@@ -29,10 +29,7 @@ function getShadowRoot(element: Element | null): ShadowRoot | null {
  * BBC iPlayer's player has elements nested 4 levels deep in shadow roots:
  * document → toucan [shadow] → video-layout [shadow] → core-controls [shadow] → button [shadow]
  */
-function getNestedShadow(
-  root: Document | ShadowRoot,
-  ...selectors: string[]
-): ShadowRoot | null {
+function getNestedShadow(root: Document | ShadowRoot, ...selectors: string[]): ShadowRoot | null {
   let current: ShadowRoot | null = null;
   let parent: Document | ShadowRoot = root;
 
@@ -77,14 +74,6 @@ function getShadowButton(selector: string): HTMLButtonElement | null {
     'smp-video-layout',
     'smp-core-controls'
   );
-
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log(`[StreamKeys] getShadowButton('${selector}'):`, {
-      controlsShadowExists: !!controlsShadow,
-      patcherAvailable: !!window.__getShadowRoot,
-    });
-  }
 
   if (!controlsShadow) return null;
 
@@ -163,24 +152,25 @@ function getSubtitlesToggleShadow(): ShadowRoot | null {
 }
 
 /**
- * Get the subtitles toggle clickable element (.toggle) for clicking
- * The .toggle div has role="checkbox" which handles the toggle behavior
- * (.toggleSlot only has cursor:pointer for styling but doesn't handle clicks)
+ * Get the subtitles toggle element (.toggle)
+ * This element has role="checkbox" with aria-checked for state,
+ * and responds to pointer events for toggling
  */
-function getSubtitlesToggleClick(): HTMLElement | null {
+function getSubtitlesToggle(): HTMLElement | null {
   const toggleShadow = getSubtitlesToggleShadow();
   if (!toggleShadow) return null;
   return toggleShadow.querySelector<HTMLElement>('.toggle');
 }
 
 /**
- * Get the inner toggle state element (.toggle) for reading aria-checked
- * The inner .toggle div has aria-checked but is not clickable (aria-hidden="true")
+ * Click the subtitle toggle using pointer events
+ * BBC's toggle doesn't respond to .click() but does respond to pointer events
  */
-function getSubtitlesToggleState(): HTMLElement | null {
-  const toggleShadow = getSubtitlesToggleShadow();
-  if (!toggleShadow) return null;
-  return toggleShadow.querySelector<HTMLElement>('.toggle');
+function clickSubtitleToggle(): void {
+  const toggle = getSubtitlesToggle();
+  if (!toggle) return;
+  toggle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+  toggle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
 }
 
 /**
@@ -190,31 +180,29 @@ function getSubtitlesToggleState(): HTMLElement | null {
  */
 const subtitleConfig = {
   getAvailable: (): SubtitleItem[] => {
-    // BBC has a single toggle, return item with clickable element
-    const clickTarget = getSubtitlesToggleClick();
-    if (!clickTarget) return [];
+    const toggle = getSubtitlesToggle();
+    if (!toggle) return [];
     // Use "Captions: On" to match the "Captions: Off" banner when turning off
-    return [{ label: 'Captions: On', element: clickTarget }];
+    return [{ label: 'Captions: On', element: toggle }];
   },
 
   getCurrentState: (): boolean => {
-    // Read state from inner .toggle div which has aria-checked
-    const state = getSubtitlesToggleState();
-    if (!state) return false;
-    return state.getAttribute('aria-checked') === 'true';
+    const toggle = getSubtitlesToggle();
+    if (!toggle) return false;
+    return toggle.getAttribute('aria-checked') === 'true';
   },
 
   turnOff: (): void => {
-    // Click the toggle slot if currently on
+    // Click the toggle using pointer events if currently on
     if (subtitleConfig.getCurrentState()) {
-      getSubtitlesToggleClick()?.click();
+      clickSubtitleToggle();
     }
   },
 
   selectLanguage: (_item: SubtitleItem): void => {
-    // Click the toggle slot if currently off
+    // Click the toggle using pointer events if currently off
     if (!subtitleConfig.getCurrentState()) {
-      getSubtitlesToggleClick()?.click();
+      clickSubtitleToggle();
     }
   },
 };
@@ -270,8 +258,8 @@ export const BBCHandler = {
     getShadowRoot,
     getNestedShadow,
     getSubtitlesToggleShadow,
-    getSubtitlesToggleClick,
-    getSubtitlesToggleState,
+    getSubtitlesToggle,
+    clickSubtitleToggle,
     subtitles: subtitleConfig,
   },
 };

@@ -32,7 +32,12 @@
   "web_accessible_resources": [
     {
       "resources": ["src/services/*.js"],
-      "matches": ["https://*.disneyplus.com/*", "https://*.hbomax.com/*", "https://*.youtube.com/*", "https://*.bbc.co.uk/*"]
+      "matches": [
+        "https://*.disneyplus.com/*",
+        "https://*.hbomax.com/*",
+        "https://*.youtube.com/*",
+        "https://*.bbc.co.uk/*"
+      ]
     }
   ]
 }

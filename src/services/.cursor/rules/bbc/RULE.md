@@ -122,8 +122,14 @@ BBC iPlayer has a **simple on/off toggle** for subtitles - no language selection
 Path to toggle shadow: `toucan [shadow] → video-layout [shadow] → secondary-controls [shadow] → subtitles-settings-panel [shadow] → smp-toggle.subs_toggle [shadow]`
 
 Inside the toggle shadow:
-- `.toggle` - clickable element with `role="checkbox"` (also has `aria-checked` for state)
-- `.toggleSlot` - visual styling only (has `cursor: pointer` but doesn't handle clicks)
+- `.toggle` - toggle element with `role="checkbox"` and `aria-checked` for state
+- `.toggleSlot` - visual styling only (has `cursor: pointer`)
+
+**Critical:** BBC's toggle does NOT respond to `.click()`. It requires **pointer events**:
+```typescript
+element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+```
 
 ```typescript
 // Get the smp-toggle's shadow root (shared by click and state functions)
@@ -140,14 +146,17 @@ function getSubtitlesToggleShadow(): ShadowRoot | null {
   return getShadowRoot(subsToggle);
 }
 
-// Get clickable element (also used for state - same element)
-function getSubtitlesToggleClick(): HTMLElement | null {
+// Get the toggle element (used for both state and clicking)
+function getSubtitlesToggle(): HTMLElement | null {
   return getSubtitlesToggleShadow()?.querySelector<HTMLElement>('.toggle') ?? null;
 }
 
-// Get state element (same as click - .toggle has both role="checkbox" and aria-checked)
-function getSubtitlesToggleState(): HTMLElement | null {
-  return getSubtitlesToggleShadow()?.querySelector<HTMLElement>('.toggle') ?? null;
+// Click using pointer events (BBC's toggle doesn't respond to .click())
+function clickSubtitleToggle(): void {
+  const toggle = getSubtitlesToggle();
+  if (!toggle) return;
+  toggle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+  toggle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
 }
 
 // Get inner element for state
@@ -158,9 +167,9 @@ function getSubtitlesToggleState(): HTMLElement | null {
 }
 ```
 
-Check state: `getSubtitlesToggleState()?.getAttribute('aria-checked') === 'true'`
+Check state: `getSubtitlesToggle()?.getAttribute('aria-checked') === 'true'`
 
-Toggle: `getSubtitlesToggleClick()?.click()`
+Toggle: `clickSubtitleToggle()` (uses pointer events, not `.click()`)
 
 ## Player Element
 
@@ -244,8 +253,8 @@ BBCHandler._test.getShadowButton(sel)       // Get button from nested shadow DOM
 BBCHandler._test.getShadowRoot(el)          // Get shadow root (patcher or native)
 BBCHandler._test.getNestedShadow(...)       // Traverse nested shadow DOM
 BBCHandler._test.getSubtitlesToggleShadow() // Get smp-toggle's shadow root
-BBCHandler._test.getSubtitlesToggleClick()  // Get .toggle (for clicking, has role="checkbox")
-BBCHandler._test.getSubtitlesToggleState()  // Get .toggle (for state, has aria-checked)
+BBCHandler._test.getSubtitlesToggle()       // Get .toggle element (state + click target)
+BBCHandler._test.clickSubtitleToggle()      // Toggle using pointer events
 BBCHandler._test.subtitles                  // Subtitle config object
 ```
 
