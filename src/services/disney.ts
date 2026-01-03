@@ -45,13 +45,21 @@ const keyMap: Record<string, string> = {
 };
 
 /**
- * Get Disney+ video element (the one with hive-video class)
- * Disney+ has two video elements - one hidden, one active
+ * Get Disney+ video element.
+ * Disney+ has two video elements - one hidden, one active.
+ * In non-fullscreen mode: video.hive-video
+ * In fullscreen mode: video#hivePlayer1.btm-media-client-element (no hive-video class)
  */
 function getDisneyVideo(): HTMLVideoElement | null {
   const player = document.body.querySelector('disney-web-player');
   if (!player) return null;
-  return player.querySelector<HTMLVideoElement>('video.hive-video');
+
+  // Primary: video with hive-video class (non-fullscreen)
+  const hiveVideo = player.querySelector<HTMLVideoElement>('video.hive-video');
+  if (hiveVideo) return hiveVideo;
+
+  // Fallback: video by stable ID (fullscreen mode)
+  return player.querySelector<HTMLVideoElement>('#hivePlayer1');
 }
 
 // Cache for Disney progress bar element
@@ -80,8 +88,13 @@ function getDisneyAriaValue(attribute: 'aria-valuenow' | 'aria-valuemax'): numbe
     return null;
   };
 
-  // Try to use cached element first
-  if (disneyProgressBarCache && now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL) {
+  // Try to use cached element first (if still connected to DOM)
+  // Disney+ can rebuild its UI (e.g., fullscreen transitions) which detaches elements
+  if (
+    disneyProgressBarCache &&
+    now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL &&
+    disneyProgressBarCache.element?.isConnected
+  ) {
     const value = getValueFromThumb(disneyProgressBarCache.element);
     if (value !== null) {
       return value;

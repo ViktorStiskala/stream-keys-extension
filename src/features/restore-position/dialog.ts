@@ -2,7 +2,7 @@
 
 import type { StreamKeysVideoElement } from '@/types';
 import { Banner } from '@/ui/banner';
-import { Debug, Video } from '@/core';
+import { Debug, Fullscreen, Video } from '@/core';
 import { Styles } from '@/ui/styles/variables';
 import { DialogStyles } from './styles';
 import { PositionHistory, type PositionHistoryState, type RestorePosition } from './history';
@@ -235,14 +235,17 @@ function createRestoreDialog(
   hint.style.cssText = DialogStyles.hint;
   restoreDialog.appendChild(hint);
 
-  document.body.appendChild(restoreDialog);
+  // Append to fullscreen element if in fullscreen, otherwise to body
+  // This ensures the dialog is visible when in fullscreen mode
+  const container = Fullscreen.getElement() ?? document.body;
+  container.appendChild(restoreDialog);
 
   // Update function for times
   const updateDialogTimes = () => {
     const currentVideo = getVideoElement();
     const currentTimeEl = document.getElementById(CURRENT_TIME_ID);
     if (currentTimeEl) {
-      const displayTime = currentVideo?._streamKeysGetPlaybackTime?.() ?? 0;
+      const displayTime = currentVideo?._streamKeysGetDisplayTime?.() ?? 0;
       currentTimeEl.textContent = Video.formatTime(displayTime);
     }
 

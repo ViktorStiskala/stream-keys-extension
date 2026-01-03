@@ -1,5 +1,6 @@
 // Banner notification utility
 
+import { Fullscreen } from '@/core';
 import { Styles } from './styles/variables';
 
 const BANNER_ID = 'streamkeys-banner';
@@ -39,7 +40,10 @@ function showBanner(message: string): void {
     transition: opacity 0.3s ease-out;
   `;
 
-  document.body.appendChild(banner);
+  // Append to fullscreen element if in fullscreen, otherwise to body
+  // This ensures the banner is visible when in fullscreen mode
+  const container = Fullscreen.getElement() ?? document.body;
+  container.appendChild(banner);
 
   // Fade out after delay
   bannerTimeout = setTimeout(() => {
