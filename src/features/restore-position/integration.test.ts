@@ -410,7 +410,9 @@ describe('Restore Position Integration', () => {
 
       // Update _streamKeysGetDisplayTime to use the fallback (since we modified _streamKeysGetPlaybackTime)
       augmentedVideo._streamKeysGetDisplayTime = () =>
-        augmentedVideo._streamKeysGetPlaybackTime?.() ?? augmentedVideo._streamKeysLastKnownTime ?? 0;
+        augmentedVideo._streamKeysGetPlaybackTime?.() ??
+        augmentedVideo._streamKeysLastKnownTime ??
+        0;
 
       // video.currentTime is buffer-relative (small value)
       ctx.video._setCurrentTime(5);
