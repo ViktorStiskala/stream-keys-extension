@@ -140,8 +140,10 @@ async function tryInjectHandler(
     return;
   }
 
-  // Check if already injected for this tab
-  if (injectedTabs.get(tabId) === handler.handlerFile) {
+  // Check if ANY handler already injected for this tab
+  // (prevents race condition when navigating between services where multiple
+  // navigation events fire with different URLs)
+  if (injectedTabs.has(tabId)) {
     if (__DEV__) {
       Debug.event(eventName, details, 'already injected, skipping');
     }

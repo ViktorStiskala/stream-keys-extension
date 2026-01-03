@@ -90,6 +90,7 @@ function createHandler(config: HandlerConfig): HandlerAPI {
       getVideoElement,
       seekToTime: config.seekToTime,
       timing: config.positionTrackingTiming,
+      getDialogContainer: config.getDialogContainer,
     });
     cleanupFns.push(restorePositionAPI.cleanup);
   }

@@ -82,7 +82,43 @@ For position restore, the handler provides `seekToTime` that simulates a click o
 seekToTime(time: number, duration: number): boolean
 ```
 
-This calculates the click position based on `time/duration` ratio and dispatches mousedown/mouseup/click events to the progress bar element.
+**Critical:** Disney+ requires **PointerEvent** instead of MouseEvent, and events must be dispatched **inside the Shadow DOM** on the `.progress-bar__seekable-range` element (not the `<progress-bar>` host).
+
+The progress bar Shadow DOM structure:
+```html
+<progress-bar>
+  <template shadowroot="open">
+    <div class="progress-bar__container progress-bar__no-pointer-events ...">
+      <div class="progress-bar__seekable-range" tabindex="0" aria-label="Slider">
+        <div class="progress-bar__thumb" aria-valuenow="885" aria-valuemax="2647"></div>
+      </div>
+    </div>
+  </template>
+</progress-bar>
+```
+
+- The container has `progress-bar__no-pointer-events` (CSS `pointer-events: none`)
+- The interactive element is `.progress-bar__seekable-range` (with `tabindex="0"`)
+- Events on the host element are ignored by Disney+'s handlers
+
+```typescript
+const seekableRange = progressBar.shadowRoot.querySelector('.progress-bar__seekable-range');
+const eventInit: PointerEventInit = {
+  bubbles: true,
+  cancelable: true,
+  composed: true,
+  clientX: clickX,
+  clientY: clickY,
+  view: window,
+  pointerId: 1,
+  pointerType: 'mouse',
+  isPrimary: true,
+  button: 0,
+  buttons: 1,
+};
+seekableRange.dispatchEvent(new PointerEvent('pointerdown', eventInit));
+seekableRange.dispatchEvent(new PointerEvent('pointerup', { ...eventInit, buttons: 0 }));
+```
 
 ## Player Element
 
@@ -111,7 +147,60 @@ To select a language: Click the corresponding radio input element.
 
 ## DOM Reference
 
-**Important:** Always consult `resources/dom/disney.html` when implementing any DOM-related changes, including selectors, value extraction, element traversal, or Shadow DOM access. This file contains a snapshot of the actual Disney+ player (irrelevant parts removed to make the file smaller) DOM structure and should be the primary reference for understanding the page layout.
+**Important:** Always consult the DOM fixtures when implementing any DOM-related changes, including selectors, value extraction, element traversal, or Shadow DOM access.
+
+### Available Fixtures
+
+- `resources/dom/disney.html` - Normal (non-fullscreen) player state
+- `resources/dom/disney_full.html` - Fullscreen player state
+
+### Capture Method
+
+The fixtures were captured using a Shadow DOM flattening script that serializes the DOM with shadow roots inlined as `<template shadowroot="open">` elements:
+
+```javascript
+(() => {
+  function escapeHtml(s) {
+    return s
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function serialize(node) {
+    if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.nodeValue ?? "");
+    if (node.nodeType === Node.COMMENT_NODE) return `<!--${node.nodeValue ?? ""}-->`;
+    if (node.nodeType === Node.DOCUMENT_NODE) return serialize(node.documentElement);
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node;
+      const tag = el.tagName.toLowerCase();
+      const attrs = [...el.attributes]
+        .map(a => ` ${a.name}="${escapeHtml(a.value)}"`)
+        .join("");
+
+      let inner = "";
+      for (const child of el.childNodes) inner += serialize(child);
+
+      // Inline open shadow roots
+      if (el.shadowRoot) {
+        inner += `<template shadowroot="open">`;
+        for (const child of el.shadowRoot.childNodes) inner += serialize(child);
+        inner += `</template>`;
+      }
+
+      return `<${tag}${attrs}>${inner}</${tag}>`;
+    }
+    return "";
+  }
+
+  const html = "<!doctype html>\n" + serialize(document);
+  copy(html);
+  return "Copied flattened DOM (open shadow roots only) to clipboard.";
+})();
+```
+
+**Note:** The script only captures **open** shadow roots. Closed shadow roots will appear empty in the fixture.
 
 ## Testing
 

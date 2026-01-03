@@ -231,9 +231,66 @@ The handler factory's polling mechanism (`BUTTON_INTERCEPTION_INTERVAL`) will fi
 
 ## DOM Reference
 
-**Important:** Always consult `resources/dom/bbc.html` when implementing any DOM-related changes. This file contains a **flattened** snapshot of the BBC iPlayer DOM with shadow DOM contents inlined as `<template shadowroot="open">` elements.
+**Important:** Always consult the DOM fixtures when implementing any DOM-related changes.
 
-Note: The DOM capture script only shows open shadow roots. If elements appear in the DOM file but `shadowRoot` returns `null` at runtime, they may be using closed shadow roots (requiring the shadow patcher).
+### Available Fixtures
+
+- `resources/dom/bbc.html` - Normal (non-fullscreen) player state
+- `resources/dom/bbc_full.html` - Fullscreen player state
+
+### Capture Method
+
+The fixtures were captured using a Shadow DOM flattening script that serializes the DOM with shadow roots inlined as `<template shadowroot="open">` elements:
+
+```javascript
+(() => {
+  function escapeHtml(s) {
+    return s
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function serialize(node) {
+    if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.nodeValue ?? "");
+    if (node.nodeType === Node.COMMENT_NODE) return `<!--${node.nodeValue ?? ""}-->`;
+    if (node.nodeType === Node.DOCUMENT_NODE) return serialize(node.documentElement);
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node;
+      const tag = el.tagName.toLowerCase();
+      const attrs = [...el.attributes]
+        .map(a => ` ${a.name}="${escapeHtml(a.value)}"`)
+        .join("");
+
+      let inner = "";
+      for (const child of el.childNodes) inner += serialize(child);
+
+      // Inline open shadow roots
+      if (el.shadowRoot) {
+        inner += `<template shadowroot="open">`;
+        for (const child of el.shadowRoot.childNodes) inner += serialize(child);
+        inner += `</template>`;
+      }
+
+      return `<${tag}${attrs}>${inner}</${tag}>`;
+    }
+    return "";
+  }
+
+  const html = "<!doctype html>\n" + serialize(document);
+  copy(html);
+  return "Copied flattened DOM (open shadow roots only) to clipboard.";
+})();
+```
+
+**Note:** The script only captures **open** shadow roots. BBC iPlayer uses **closed** shadow roots for some components, which will appear empty in the fixture. These require the shadow patcher (`src/shadow-patcher.ts`) at runtime.
+
+### Fullscreen Considerations
+
+In fullscreen mode, UI elements (like restore dialogs or banners) must be appended **inside** the Shadow DOM to be visible. The player's Shadow DOM creates a new stacking context that covers the entire viewport.
+
+For the restore dialog, the handler provides `getDialogContainer()` which returns `.video_layout_outer_container` inside `smp-video-layout`'s shadow root - this ensures the dialog appears above the video in fullscreen.
 
 ## Testing
 

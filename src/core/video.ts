@@ -44,7 +44,10 @@ function augmentVideoElement(
     augmented._streamKeysGetPlaybackTime = () => {
       if (customGetPlaybackTime) {
         const time = customGetPlaybackTime();
+        // Return null if custom getter returns null - allows callers to use fallbacks
+        // (e.g., Disney+ returns null when controls are hidden)
         if (time !== null) return time;
+        return null;
       }
       return video.currentTime;
     };
@@ -65,6 +68,13 @@ function augmentVideoElement(
         if (duration !== null) return duration;
       }
       return video.duration;
+    };
+
+    // Display time getter with fallback chain for UI display
+    // Uses live playback time when available, falls back to last known time
+    // for services where controls may be hidden (e.g., Disney+ when dialog is open)
+    augmented._streamKeysGetDisplayTime = () => {
+      return augmented._streamKeysGetPlaybackTime?.() ?? augmented._streamKeysLastKnownTime ?? 0;
     };
   }
 

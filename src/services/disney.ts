@@ -45,13 +45,21 @@ const keyMap: Record<string, string> = {
 };
 
 /**
- * Get Disney+ video element (the one with hive-video class)
- * Disney+ has two video elements - one hidden, one active
+ * Get Disney+ video element.
+ * Disney+ has two video elements - one hidden, one active.
+ * In non-fullscreen mode: video.hive-video
+ * In fullscreen mode: video#hivePlayer1.btm-media-client-element (no hive-video class)
  */
 function getDisneyVideo(): HTMLVideoElement | null {
   const player = document.body.querySelector('disney-web-player');
   if (!player) return null;
-  return player.querySelector<HTMLVideoElement>('video.hive-video');
+
+  // Primary: video with hive-video class (non-fullscreen)
+  const hiveVideo = player.querySelector<HTMLVideoElement>('video.hive-video');
+  if (hiveVideo) return hiveVideo;
+
+  // Fallback: video by stable ID (fullscreen mode)
+  return player.querySelector<HTMLVideoElement>('#hivePlayer1');
 }
 
 // Cache for Disney progress bar element
@@ -80,8 +88,13 @@ function getDisneyAriaValue(attribute: 'aria-valuenow' | 'aria-valuemax'): numbe
     return null;
   };
 
-  // Try to use cached element first
-  if (disneyProgressBarCache && now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL) {
+  // Try to use cached element first (if still connected to DOM)
+  // Disney+ can rebuild its UI (e.g., fullscreen transitions) which detaches elements
+  if (
+    disneyProgressBarCache &&
+    now - disneyProgressBarCache.lastCheck < DISNEY_CACHE_TTL &&
+    disneyProgressBarCache.element?.isConnected
+  ) {
     const value = getValueFromThumb(disneyProgressBarCache.element);
     if (value !== null) {
       return value;
@@ -176,12 +189,19 @@ function resetCache(): void {
  */
 function seekToTime(time: number, duration: number): boolean {
   const progressBar = document.querySelector('progress-bar');
-  if (!progressBar) {
-    console.warn('[StreamKeys] Progress bar not found for seek');
+  if (!progressBar?.shadowRoot) {
+    console.warn('[StreamKeys] Progress bar or shadow root not found for seek');
     return false;
   }
 
-  const rect = progressBar.getBoundingClientRect();
+  // Get the seekable range element - the actual interactive slider
+  const seekableRange = progressBar.shadowRoot.querySelector('.progress-bar__seekable-range');
+  if (!seekableRange) {
+    console.warn('[StreamKeys] Progress bar seekable range not found');
+    return false;
+  }
+
+  const rect = seekableRange.getBoundingClientRect();
   if (rect.width === 0) {
     console.warn('[StreamKeys] Progress bar has zero width');
     return false;
@@ -196,18 +216,24 @@ function seekToTime(time: number, duration: number): boolean {
     Debug.log(`Seeking to ${time}s via timeline click at x=${Math.round(clickX)}`);
   }
 
-  // Create and dispatch mouse events to simulate a click
-  const eventInit: MouseEventInit = {
+  // Use PointerEvent - modern web apps often use pointer events instead of mouse events
+  const eventInit: PointerEventInit = {
     bubbles: true,
     cancelable: true,
+    composed: true, // Allow event to cross shadow DOM boundary
     clientX: clickX,
     clientY: clickY,
     view: window,
+    pointerId: 1,
+    pointerType: 'mouse',
+    isPrimary: true,
+    button: 0,
+    buttons: 1,
   };
 
-  progressBar.dispatchEvent(new MouseEvent('mousedown', eventInit));
-  progressBar.dispatchEvent(new MouseEvent('mouseup', eventInit));
-  progressBar.dispatchEvent(new MouseEvent('click', eventInit));
+  // Dispatch pointer events on the seekable range
+  seekableRange.dispatchEvent(new PointerEvent('pointerdown', eventInit));
+  seekableRange.dispatchEvent(new PointerEvent('pointerup', { ...eventInit, buttons: 0 }));
 
   return true;
 }

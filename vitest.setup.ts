@@ -4,7 +4,7 @@ import { resolve } from 'path';
 /**
  * Load a DOM fixture from resources/dom/ into the document
  */
-export function loadFixture(name: 'disney' | 'hbomax' | 'youtube' | 'bbc'): void {
+export function loadFixture(name: 'disney' | 'disney_full' | 'hbomax' | 'youtube' | 'bbc'): void {
   const html = readFileSync(resolve(__dirname, `resources/dom/${name}.html`), 'utf-8');
   document.documentElement.innerHTML = html;
 }

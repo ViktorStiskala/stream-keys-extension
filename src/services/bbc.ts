@@ -174,6 +174,18 @@ function clickSubtitleToggle(): void {
 }
 
 /**
+ * Get container for restore dialog (inside Shadow DOM for fullscreen visibility).
+ * In fullscreen mode, BBC's Shadow DOM content covers the entire viewport,
+ * so the dialog must be appended inside the Shadow DOM to be visible.
+ * Path: toucan [shadow] → video-layout [shadow] → .video_layout_outer_container
+ */
+function getDialogContainer(): HTMLElement | null {
+  const videoLayoutShadow = getNestedShadow(document, 'smp-toucan-player', 'smp-video-layout');
+  if (!videoLayoutShadow) return null;
+  return videoLayoutShadow.querySelector<HTMLElement>('.video_layout_outer_container');
+}
+
+/**
  * Subtitle config for BBC iPlayer
  * BBC only has a simple on/off toggle, no language selection
  * Click the host element (smp-toggle), read state from inner .toggle div
@@ -241,6 +253,8 @@ function initBBCHandler(): void {
       return document.getElementById('tviplayer') || document.body;
     },
 
+    getDialogContainer,
+
     subtitles: subtitleConfig,
   });
 }
@@ -260,6 +274,7 @@ export const BBCHandler = {
     getSubtitlesToggleShadow,
     getSubtitlesToggle,
     clickSubtitleToggle,
+    getDialogContainer,
     subtitles: subtitleConfig,
   },
 };

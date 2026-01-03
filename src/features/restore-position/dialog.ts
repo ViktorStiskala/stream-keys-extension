@@ -2,7 +2,7 @@
 
 import type { StreamKeysVideoElement } from '@/types';
 import { Banner } from '@/ui/banner';
-import { Debug, Video } from '@/core';
+import { Debug, Fullscreen, Video } from '@/core';
 import { Styles } from '@/ui/styles/variables';
 import { DialogStyles } from './styles';
 import { PositionHistory, type PositionHistoryState, type RestorePosition } from './history';
@@ -18,6 +18,8 @@ export const RELATIVE_TIME_CLASS = 'streamkeys-relative-time';
 // Dialog state
 let restoreDialog: HTMLDivElement | null = null;
 let dialogUpdateInterval: ReturnType<typeof setInterval> | null = null;
+// Store container for banner display (needed for Shadow DOM environments like BBC)
+let dialogContainer: HTMLElement | null = null;
 
 /**
  * Close the restore dialog
@@ -31,6 +33,7 @@ function closeRestoreDialog(): void {
     restoreDialog.remove();
     restoreDialog = null;
   }
+  dialogContainer = null;
 }
 
 /**
@@ -42,6 +45,9 @@ function isDialogOpen(): boolean {
 
 /** Callback type for service-specific seeking */
 type SeekToTimeCallback = (time: number, duration: number) => boolean;
+
+/** Callback type for getting dialog container */
+type GetDialogContainerCallback = () => HTMLElement | null;
 
 /**
  * Restore video to a specific position.
@@ -60,7 +66,7 @@ function restorePosition(
     const duration = video._streamKeysGetDuration?.() ?? video.duration;
     const success = seekToTime(time, duration);
     if (success) {
-      Banner.show(`Restored to ${Video.formatTime(time)}`);
+      Banner.show(`Restored to ${Video.formatTime(time)}`, dialogContainer);
       return;
     }
     // Fall through to direct seek if callback fails
@@ -68,7 +74,7 @@ function restorePosition(
 
   // Default: direct video.currentTime assignment
   video.currentTime = time;
-  Banner.show(`Restored to ${Video.formatTime(time)}`);
+  Banner.show(`Restored to ${Video.formatTime(time)}`, dialogContainer);
 }
 
 /**
@@ -138,7 +144,8 @@ function createPositionItem(
 function createRestoreDialog(
   historyState: PositionHistoryState,
   getVideoElement: () => StreamKeysVideoElement | null,
-  seekToTime?: SeekToTimeCallback
+  seekToTime?: SeekToTimeCallback,
+  getDialogContainer?: GetDialogContainerCallback
 ): void {
   // Toggle behavior - close if already open
   if (restoreDialog) {
@@ -146,11 +153,14 @@ function createRestoreDialog(
     return;
   }
 
+  // Store container for banner display (needed for Shadow DOM environments like BBC)
+  dialogContainer = getDialogContainer?.() ?? null;
+
   const allPositions = PositionHistory.getPositions(historyState);
 
   // Show message if no positions available
   if (allPositions.length === 0) {
-    Banner.show('No saved positions');
+    Banner.show('No saved positions', dialogContainer);
     return;
   }
 
@@ -235,19 +245,24 @@ function createRestoreDialog(
   hint.style.cssText = DialogStyles.hint;
   restoreDialog.appendChild(hint);
 
-  document.body.appendChild(restoreDialog);
+  // Append to custom container if provided (for Shadow DOM environments like BBC),
+  // otherwise to fullscreen element if in fullscreen, otherwise to body
+  const container = getDialogContainer?.() ?? Fullscreen.getElement() ?? document.body;
+  container.appendChild(restoreDialog);
 
   // Update function for times
+  // Note: We search within restoreDialog instead of document because the dialog
+  // may be inside a Shadow DOM (e.g., BBC iPlayer), where document queries don't work
   const updateDialogTimes = () => {
     const currentVideo = getVideoElement();
-    const currentTimeEl = document.getElementById(CURRENT_TIME_ID);
+    const currentTimeEl = restoreDialog?.querySelector(`#${CURRENT_TIME_ID}`);
     if (currentTimeEl) {
-      const displayTime = currentVideo?._streamKeysGetPlaybackTime?.() ?? 0;
+      const displayTime = currentVideo?._streamKeysGetDisplayTime?.() ?? 0;
       currentTimeEl.textContent = Video.formatTime(displayTime);
     }
 
-    const relativeTimeEls = document.querySelectorAll(`.${RELATIVE_TIME_CLASS}`);
-    relativeTimeEls.forEach((el) => {
+    const relativeTimeEls = restoreDialog?.querySelectorAll(`.${RELATIVE_TIME_CLASS}`);
+    relativeTimeEls?.forEach((el) => {
       const savedAt = parseInt((el as HTMLElement).dataset.savedAt || '0', 10);
       if (savedAt) {
         el.textContent = Video.formatRelativeTime(savedAt);

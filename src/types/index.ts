@@ -107,11 +107,13 @@ export interface StreamKeysVideoElement extends HTMLVideoElement {
   _streamKeysPlaybackStarted?: boolean;
   _streamKeysMouseListenerAdded?: boolean;
   /** Get actual playback time (uses custom logic if available, else video.currentTime) */
-  _streamKeysGetPlaybackTime?: () => number;
+  _streamKeysGetPlaybackTime?: () => number | null;
   /** Get stable time for position restore (uses fallback chain) */
   _streamKeysGetStableTime?: () => number;
   /** Get actual video duration (uses custom logic if available, else video.duration) */
   _streamKeysGetDuration?: () => number;
+  /** Get display time for UI (playback time with fallback to last known time) */
+  _streamKeysGetDisplayTime?: () => number;
 }
 
 // Player element with StreamKeys properties

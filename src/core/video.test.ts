@@ -43,7 +43,7 @@ describe('Video', () => {
         expect(video?._streamKeysGetPlaybackTime?.()).toBe(expected);
       });
 
-      it('falls back to video.currentTime when custom getter returns null', () => {
+      it('returns null when custom getter returns null (allows fallback handling)', () => {
         const player = document.createElement('div');
         player.appendChild(mockVideo);
         document.body.appendChild(player);
@@ -54,7 +54,9 @@ describe('Video', () => {
         });
 
         const video = getter() as StreamKeysVideoElement;
-        expect(video?._streamKeysGetPlaybackTime?.()).toBe(50);
+        // Returns null so callers can use _streamKeysLastKnownTime as fallback
+        // (e.g., Disney+ when controls are hidden)
+        expect(video?._streamKeysGetPlaybackTime?.()).toBeNull();
       });
 
       it('uses video.currentTime when no custom getter provided', () => {
@@ -152,6 +154,81 @@ describe('Video', () => {
 
         const video = getter() as StreamKeysVideoElement;
         expect(video?._streamKeysGetDuration?.()).toBe(100);
+      });
+    });
+
+    /**
+     * Regression tests for _streamKeysGetDisplayTime fallback chain.
+     *
+     * Bug: Dialog showed 0:00 on Disney+ when controls were hidden because
+     * _streamKeysGetPlaybackTime returned null (progress bar not accessible)
+     * and video.currentTime is buffer-relative (~0s for MSE streams).
+     *
+     * Fix: Added _streamKeysGetDisplayTime with fallback to _streamKeysLastKnownTime.
+     */
+    describe('_streamKeysGetDisplayTime fallback chain (regression)', () => {
+      it('returns _streamKeysGetPlaybackTime value when available', () => {
+        const player = document.createElement('div');
+        player.appendChild(mockVideo);
+        document.body.appendChild(player);
+
+        const getter = Video.createGetter({
+          getPlayer: () => player,
+          getPlaybackTime: () => 1800, // 30:00
+        });
+        const video = getter() as StreamKeysVideoElement;
+
+        expect(video._streamKeysGetDisplayTime?.()).toBe(1800);
+      });
+
+      it('falls back to _streamKeysLastKnownTime when playback time returns null', () => {
+        const player = document.createElement('div');
+        player.appendChild(mockVideo);
+        document.body.appendChild(player);
+
+        const getter = Video.createGetter({
+          getPlayer: () => player,
+          getPlaybackTime: () => null, // Simulates Disney+ with hidden controls
+        });
+        const video = getter() as StreamKeysVideoElement;
+
+        // Set last known time (captured when controls were visible)
+        video._streamKeysLastKnownTime = 2700; // 45:00
+
+        expect(video._streamKeysGetDisplayTime?.()).toBe(2700);
+      });
+
+      it('returns 0 when both playback time and last known time are unavailable', () => {
+        const player = document.createElement('div');
+        player.appendChild(mockVideo);
+        document.body.appendChild(player);
+
+        const getter = Video.createGetter({
+          getPlayer: () => player,
+          getPlaybackTime: () => null,
+        });
+        const video = getter() as StreamKeysVideoElement;
+
+        // No _streamKeysLastKnownTime set
+        expect(video._streamKeysGetDisplayTime?.()).toBe(0);
+      });
+
+      it('prefers live playback time over stale last known time', () => {
+        const player = document.createElement('div');
+        player.appendChild(mockVideo);
+        document.body.appendChild(player);
+
+        const getter = Video.createGetter({
+          getPlayer: () => player,
+          getPlaybackTime: () => 3600, // Live time: 1:00:00
+        });
+        const video = getter() as StreamKeysVideoElement;
+
+        // Last known time is older (captured before playback progressed)
+        video._streamKeysLastKnownTime = 3000;
+
+        // Should use live playback time, not stale last known time
+        expect(video._streamKeysGetDisplayTime?.()).toBe(3600);
       });
     });
   });

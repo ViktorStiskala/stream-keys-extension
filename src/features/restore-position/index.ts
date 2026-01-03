@@ -15,6 +15,8 @@ export interface RestorePositionConfig {
   seekToTime?: (time: number, duration: number) => boolean;
   /** Optional timing configuration for position tracking settling delays */
   timing?: TrackingTimingConfig;
+  /** Custom container for restore dialog (for fullscreen in Shadow DOM environments) */
+  getDialogContainer?: () => HTMLElement | null;
 }
 
 export interface RestorePositionAPI {
@@ -44,7 +46,7 @@ function initRestorePosition(config: RestorePositionConfig): RestorePositionAPI 
   let videoCleanup: CleanupFn | null = null;
   let earlySetupInterval: ReturnType<typeof setInterval> | null = null;
 
-  const { getVideoElement, seekToTime, timing } = config;
+  const { getVideoElement, seekToTime, timing, getDialogContainer } = config;
 
   // Track current video to detect when a new video starts
   // We track both the element AND the source because:
@@ -119,7 +121,7 @@ function initRestorePosition(config: RestorePositionConfig): RestorePositionAPI 
   return {
     openDialog: () => {
       if (Settings.isPositionHistoryEnabled()) {
-        RestoreDialog.create(state, getVideoElement, seekToTime);
+        RestoreDialog.create(state, getVideoElement, seekToTime, getDialogContainer);
       }
     },
     closeDialog: RestoreDialog.close,

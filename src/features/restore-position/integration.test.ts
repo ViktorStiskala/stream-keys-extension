@@ -379,6 +379,57 @@ describe('Restore Position Integration', () => {
       expect(currentTimeEl?.textContent).toBe(expectedTimeString);
     });
 
+    /**
+     * Regression test for issue where dialog shows 0:00 when _streamKeysGetPlaybackTime
+     * returns null (e.g., Disney+ with hidden controls).
+     *
+     * Bug: Dialog used only _streamKeysGetPlaybackTime ?? 0, ignoring _streamKeysLastKnownTime.
+     * For Disney+, when controls are hidden, the progress bar is not accessible,
+     * so getPlaybackTime returns null, and video.currentTime is buffer-relative (~0s).
+     * Fix: Added _streamKeysGetDisplayTime() method with fallback to _streamKeysLastKnownTime.
+     */
+    it('uses _streamKeysGetDisplayTime which falls back to _streamKeysLastKnownTime (regression)', async () => {
+      await initAndWaitForReady(ctx);
+
+      const state = ctx.restorePositionAPI!.getState();
+      // Add a position so dialog shows
+      PositionHistory.save(state, SEEK_MIN_DIFF_SECONDS + 100);
+
+      // Simulate Disney+ scenario:
+      // - _streamKeysGetPlaybackTime returns null (controls hidden)
+      // - video.currentTime returns a small buffer-relative value
+      // - _streamKeysLastKnownTime has the real playback time
+      const realPlaybackTime = 1800; // 30:00
+      const augmentedVideo = ctx.getVideoElement() as StreamKeysVideoElement;
+
+      // Set last known time (captured when controls were visible)
+      augmentedVideo._streamKeysLastKnownTime = realPlaybackTime;
+
+      // Make _streamKeysGetPlaybackTime return null (simulating hidden controls)
+      augmentedVideo._streamKeysGetPlaybackTime = () => null;
+
+      // Update _streamKeysGetDisplayTime to use the fallback (since we modified _streamKeysGetPlaybackTime)
+      augmentedVideo._streamKeysGetDisplayTime = () =>
+        augmentedVideo._streamKeysGetPlaybackTime?.() ??
+        augmentedVideo._streamKeysLastKnownTime ??
+        0;
+
+      // video.currentTime is buffer-relative (small value)
+      ctx.video._setCurrentTime(5);
+
+      ctx.restorePositionAPI!.openDialog();
+
+      // Advance timer to trigger dialog update
+      vi.advanceTimersByTime(100);
+
+      const currentTimeEl = document.getElementById(CURRENT_TIME_ID);
+      expect(currentTimeEl).not.toBeNull();
+
+      // Should show the last known time (30:00), NOT buffer time (0:05) or 0:00
+      const expectedTimeString = Video.formatTime(realPlaybackTime); // "30:00"
+      expect(currentTimeEl?.textContent).toBe(expectedTimeString);
+    });
+
     it('shows load time position with "load time" label', async () => {
       await initAndWaitForReady(ctx);
 
