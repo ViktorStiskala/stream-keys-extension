@@ -43,6 +43,15 @@ function getNestedShadow(root: Document | ShadowRoot, ...selectors: string[]): S
 }
 
 /**
+ * Check if a trailer is currently playing.
+ * BBC shows .skip-trailer element when a trailer is active.
+ * During trailers, the progress bar shows main video time but we're watching trailer content.
+ */
+function isTrailerPlaying(): boolean {
+  return document.querySelector('.skip-trailer') !== null;
+}
+
+/**
  * Get the player element (video-layout inside toucan's shadow root)
  * Used for focus handling
  */
@@ -56,8 +65,15 @@ function getPlayer(): HTMLElement | null {
 /**
  * Get video element from inside smp-playback Shadow DOM
  * Path: document → toucan [shadow] → playback [shadow] → video
+ *
+ * Returns null during trailers to prevent position tracking.
+ * The progress bar shows main video time during trailers, but we don't want
+ * to record those positions since they're not from actual playback.
  */
 function getVideo(): HTMLVideoElement | null {
+  // Don't track video during trailers
+  if (isTrailerPlaying()) return null;
+
   const playbackShadow = getNestedShadow(document, 'smp-toucan-player', 'smp-playback');
   if (!playbackShadow) return null;
   return playbackShadow.querySelector<HTMLVideoElement>('video');
@@ -256,6 +272,10 @@ function initBBCHandler(): void {
     getDialogContainer,
 
     subtitles: subtitleConfig,
+
+    features: {
+      fullscreenOverlay: false, // BBC handles focus properly, no click-through overlay needed
+    },
   });
 }
 
@@ -275,6 +295,7 @@ export const BBCHandler = {
     getSubtitlesToggle,
     clickSubtitleToggle,
     getDialogContainer,
+    isTrailerPlaying,
     subtitles: subtitleConfig,
   },
 };

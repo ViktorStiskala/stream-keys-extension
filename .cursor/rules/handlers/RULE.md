@@ -27,6 +27,7 @@ Service handlers provide a config object to `createHandler()`:
 - `getDuration`: Custom duration getter for services where `video.duration` is unreliable
 - `getVideo`: Custom video element selector for services with multiple video elements
 - `positionTrackingTiming`: Custom timing for position tracking settling delays (see below)
+- `getDialogContainer`: Container element for restore dialog (needed for Shadow DOM services like BBC where dialogs must be inside shadow root for fullscreen visibility)
 
 ## Shadow DOM Access
 
@@ -201,13 +202,13 @@ The capture phase (`true`) ensures our handler runs before any handlers on child
 
 Position history uses different debouncing strategies based on seek source:
 
-### Keyboard/Button Seeks: DEBOUNCED (2 seconds)
+### Keyboard/Button Seeks: DEBOUNCED (5 seconds)
 
 Seeks triggered by keyboard arrow keys, media keys, or UI skip buttons are debounced. This prevents rapid key presses (e.g., holding down an arrow key) from filling up the position history with many entries.
 
 ```typescript
 // In recordPositionBeforeSeek (used by keyboard/button seeks)
-debouncedSavePosition(state, preSeekTime);  // 2-second debounce window
+debouncedSavePosition(state, preSeekTime);  // 5-second debounce window
 ```
 
 ### Timeline Clicks: NEVER DEBOUNCED

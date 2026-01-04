@@ -16,7 +16,7 @@ globs:
 - `SEEK_MIN_DIFF_SECONDS`: Minimum difference between saved positions (15 seconds)
 
 ### Debounce Logic for Seeks
-- `SEEK_DEBOUNCE_MS`: 2 seconds window for grouping rapid seeks
+- `SEEK_DEBOUNCE_MS`: 5 seconds window for grouping rapid seeks
 - Only the position before the FIRST seek in a sequence is saved
 - **Keyboard/button seeks** use debouncing via `debouncedSavePosition()` - prevents rapid key presses from filling history
 - **Timeline clicks** are NOT debounced - each click is a deliberate user action that should be recorded
@@ -130,7 +130,7 @@ import {
   PositionHistory,
   SEEK_MAX_HISTORY,      // 3 - max entries in history
   SEEK_MIN_DIFF_SECONDS, // 15 - min seconds between positions
-  SEEK_DEBOUNCE_MS       // 2000 - debounce window for rapid seeks
+  SEEK_DEBOUNCE_MS       // 5000 - debounce window for rapid seeks
 } from './history';
 
 // Public API methods:

@@ -29,11 +29,46 @@ Tests are co-located with source files (vitest best practice):
 
 Real DOM snapshots for integration testing are stored in `resources/dom/`:
 - `resources/dom/disney.html` - Disney+ player DOM snapshot
+- `resources/dom/disney_full.html` - Disney+ fullscreen player snapshot
 - `resources/dom/hbomax.html` - HBO Max player DOM snapshot
+- `resources/dom/youtube.html` - YouTube player DOM snapshot
+- `resources/dom/bbc.html` - BBC iPlayer player DOM snapshot
 
 Use the test setup helpers from `vitest.setup.ts`:
 
-@scripts/fixture-setup.ts
+```typescript
+import { loadFixture, resetFixture } from '@test';
+
+loadFixture('hbomax');   // From resources/dom/hbomax.html
+loadFixture('disney');   // From resources/dom/disney.html
+loadFixture('youtube');  // From resources/dom/youtube.html
+loadFixture('bbc');      // From resources/dom/bbc.html
+
+// Always reset in afterEach
+afterEach(() => resetFixture());
+```
+
+## BBC Shadow DOM Helper
+
+BBC iPlayer uses deeply nested Shadow DOM (4-5 levels). Use `createBBCShadowDOM()` to create the structure programmatically for testing:
+
+```typescript
+import { createBBCShadowDOM, type BBCShadowDOMElements } from '@test';
+
+const elements = createBBCShadowDOM({ subtitlesOn: false });
+// Returns:
+// - toucan: smp-toucan-player element
+// - videoLayout: smp-video-layout element
+// - video: HTMLVideoElement
+// - playPauseButton: HTMLButtonElement
+// - fullscreenButton: HTMLButtonElement
+// - backwardButton: HTMLButtonElement
+// - forwardButton: HTMLButtonElement
+// - subtitleToggle: HTMLElement (.toggle div)
+// - setSubtitlesOn(on: boolean): Toggle subtitle state
+```
+
+This helper creates the full nested shadow DOM structure that BBC iPlayer uses, allowing tests to verify selector traversal and button access without needing the actual DOM fixture.
 
 ## Service Testing Pattern
 

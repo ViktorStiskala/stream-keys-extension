@@ -30,7 +30,9 @@ stream-keys/
 │   │   └── types.ts         # Handler type definitions
 │   ├── services/            # Service-specific implementations
 │   │   ├── disney.ts        # Disney+ handler
-│   │   └── hbomax.ts        # HBO Max handler
+│   │   ├── hbomax.ts        # HBO Max handler
+│   │   ├── youtube.ts       # YouTube handler
+│   │   └── bbc.ts           # BBC iPlayer handler
 │   ├── settings/            # Options page
 │   │   ├── index.ts
 │   │   └── settings.css

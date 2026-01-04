@@ -9,7 +9,7 @@ declare const __DEV__: boolean;
 // Constants
 export const SEEK_MAX_HISTORY = 3;
 export const SEEK_MIN_DIFF_SECONDS = 15;
-export const SEEK_DEBOUNCE_MS = 2000;
+export const SEEK_DEBOUNCE_MS = 5000;
 // Interval for scheduling stable time updates (how often we capture a value)
 export const STABLE_TIME_SCHEDULE_INTERVAL_MS = 200;
 // Delay before a captured value becomes "stable" (guarantees pre-seek value)
