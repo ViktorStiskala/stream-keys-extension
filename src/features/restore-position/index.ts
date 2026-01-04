@@ -32,6 +32,8 @@ export interface RestorePositionAPI {
   setKeyboardSeek: (value: boolean) => void;
   /** Handle keyboard events for the dialog */
   handleDialogKeys: (e: KeyboardEvent) => boolean;
+  /** Save user position (S key). Returns saved entry or null if blocked. */
+  saveUserPosition: (time: number) => void;
   /** Get the history state (for testing/debugging) */
   getState: () => PositionHistoryState;
   /** Cleanup resources */
@@ -134,6 +136,9 @@ function initRestorePosition(config: RestorePositionConfig): RestorePositionAPI 
     },
     handleDialogKeys: (e) => {
       return RestoreDialog.handleKeys(e, state, getVideoElement, seekToTime);
+    },
+    saveUserPosition: (time) => {
+      PositionHistory.saveUserPosition(state, time);
     },
     getState: () => state,
     cleanup: () => {

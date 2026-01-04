@@ -12,6 +12,7 @@ globs:
 ### State Management
 - `positionHistory`: Array of { time, label, savedAt } entries
 - `loadTimePosition`: Position when video first loaded (captured after initial resume)
+- `userSavedPosition`: User-saved position via S key (single entry, overwrites previous)
 - `SEEK_MAX_HISTORY`: Maximum entries to keep (3)
 - `SEEK_MIN_DIFF_SECONDS`: Minimum difference between saved positions (15 seconds)
 
@@ -23,11 +24,14 @@ globs:
 - Flag `isKeyboardOrButtonSeek` distinguishes seek sources (keyboard seeks are recorded explicitly via `recordBeforeSeek()`, timeline seeks are recorded via `seeking` event)
 - Debounce window uses inclusive boundary: `now - lastSeekTime <= SEEK_DEBOUNCE_MS`
 
-### Position Recording Rules
+### Position Recording Rules (for automatic history saves)
 1. Don't save positions < 15 seconds into video
 2. Don't save if too close to load time position  
-3. Don't save if too close to ANY existing saved position
-4. Blocked saves (due to rules 1-3) do NOT start a debounce window
+3. Don't save if too close to user saved position
+4. Don't save if too close to ANY existing position in history
+5. Blocked saves (due to rules 1-4) do NOT start a debounce window
+
+Note: User saved position (S key) bypasses all these rules and always saves.
 
 ## Load Time Position Capture
 
@@ -52,6 +56,18 @@ History is automatically cleared when navigating to a new video:
   4. Clear `_streamKeysSeekListenerAdded` flag on old video
   5. Set up tracking for new video (which recaptures load time position)
 
+## User Saved Position (S Key)
+
+- Press S to save current video position
+- **Always saves** regardless of position (no SEEK_MIN_DIFF_SECONDS check)
+- Only one user-saved position is stored; S overwrites the previous one
+- Appears as first item in the history section (after load time separator)
+- Has green-tinted styling to distinguish from other positions
+- **Key number is always "1"** (reserved), pushing history items to start at "2"
+- Key "0" is reserved for load time (even if load time is not present)
+- If no user saved position, history items start at "1"
+- Shows "saved position" as label (not relative time)
+
 ## Dialog State Management
 
 ### Toggle Behavior
@@ -60,7 +76,7 @@ History is automatically cleared when navigating to a new video:
 - ESC key closes dialog and prevents fullscreen exit
 
 ### Key Handling in Dialog
-- Number keys 0-3 select corresponding position
+- Number keys 0-4 select corresponding position (load time + user saved + up to 3 history)
 - R or ESC closes dialog
 - Modifier keys (Cmd, Ctrl) pass through for browser shortcuts
 
@@ -138,5 +154,6 @@ import {
 // - PositionHistory.reset(state) - reset state for new video
 // - PositionHistory.save(state, time) - direct save, no debounce
 // - PositionHistory.record(state, time) - save with debounce
+// - PositionHistory.saveUserPosition(state, time) - save user position (S key), overwrites previous
 // - PositionHistory.debouncedSave(state, time) - returns true if debounced, false if save attempted
 ```

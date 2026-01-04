@@ -24,4 +24,8 @@
         "**/.cursor/mcp.json",
         "!**/.env.example"
     ],
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.wordWrapColumn": 120
+    }
 }

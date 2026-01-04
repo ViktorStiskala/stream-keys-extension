@@ -2,6 +2,7 @@
 
 import type { PositionEntry, StreamKeysVideoElement } from '@/types';
 import { Debug, Settings, Video } from '@/core';
+import { Banner } from '@/ui/banner';
 
 // __DEV__ is defined by vite config based on isWatch
 declare const __DEV__: boolean;
@@ -19,6 +20,17 @@ export const LOAD_TIME_CAPTURE_DELAY_MS = 1000;
 // Delay after load time capture before tracking seeks (avoids capturing initial seeks)
 export const READY_FOR_TRACKING_DELAY_MS = 500;
 
+// Event emitted when position history changes (for dialog reactivity)
+export const POSITION_HISTORY_CHANGED_EVENT = 'streamkeys:position-history-changed';
+
+/**
+ * Emit event to notify listeners that position history has changed.
+ * Used by the dialog to rebuild its position list reactively.
+ */
+function emitPositionChanged(): void {
+  window.dispatchEvent(new CustomEvent(POSITION_HISTORY_CHANGED_EVENT));
+}
+
 /**
  * Configuration for position tracking timing delays.
  * Services can customize these to match their auto-resume behavior.
@@ -34,6 +46,7 @@ export interface TrackingTimingConfig {
 export interface PositionHistoryState {
   positionHistory: PositionEntry[];
   loadTimePosition: number | null;
+  userSavedPosition: PositionEntry | null;
   lastSeekTime: number;
   isKeyboardOrButtonSeek: boolean;
 }
@@ -42,6 +55,7 @@ function createPositionHistoryState(): PositionHistoryState {
   return {
     positionHistory: [],
     loadTimePosition: null,
+    userSavedPosition: null,
     lastSeekTime: 0,
     isKeyboardOrButtonSeek: false,
   };
@@ -53,8 +67,10 @@ function createPositionHistoryState(): PositionHistoryState {
 function resetState(state: PositionHistoryState): void {
   state.positionHistory = [];
   state.loadTimePosition = null;
+  state.userSavedPosition = null;
   state.lastSeekTime = 0;
   state.isKeyboardOrButtonSeek = false;
+  emitPositionChanged();
 }
 
 /**
@@ -75,7 +91,15 @@ function savePositionToHistory(state: PositionHistoryState, time: number): boole
     return false;
   }
 
-  // Check if this position is too close to ANY saved position
+  // Check if this position is too close to user saved position
+  if (
+    state.userSavedPosition !== null &&
+    Math.abs(state.userSavedPosition.time - time) < SEEK_MIN_DIFF_SECONDS
+  ) {
+    return false;
+  }
+
+  // Check if this position is too close to ANY saved position in history
   const tooCloseToExisting = state.positionHistory.some(
     (entry) => Math.abs(entry.time - time) < SEEK_MIN_DIFF_SECONDS
   );
@@ -95,6 +119,7 @@ function savePositionToHistory(state: PositionHistoryState, time: number): boole
   }
 
   console.info(`[StreamKeys] Seek position saved: ${entry.label}`);
+  emitPositionChanged();
   return true;
 }
 
@@ -138,13 +163,36 @@ function recordPositionBeforeSeek(
 }
 
 /**
- * Get all positions available for restore (load time + history)
+ * Save user position (triggered by S key).
+ * Overwrites any existing user saved position.
+ * Always saves regardless of position - user explicitly requested this save.
+ * @returns the saved position entry, or null if feature is disabled
+ */
+function saveUserPosition(state: PositionHistoryState, time: number): PositionEntry | null {
+  if (!Settings.isPositionHistoryEnabled()) return null;
+
+  const entry: PositionEntry = {
+    time,
+    label: Video.formatTime(time),
+    savedAt: Date.now(),
+  };
+
+  state.userSavedPosition = entry;
+  console.info(`[StreamKeys] User position saved: ${entry.label}`);
+  Banner.show(`Position saved: ${entry.label}`);
+  emitPositionChanged();
+  return entry;
+}
+
+/**
+ * Get all positions available for restore (load time + user saved + history)
  */
 export interface RestorePosition {
   time: number;
   label: string;
   relativeText: string | number;
   isLoadTime: boolean;
+  isUserSaved: boolean;
 }
 
 function getRestorePositions(state: PositionHistoryState): RestorePosition[] {
@@ -157,6 +205,18 @@ function getRestorePositions(state: PositionHistoryState): RestorePosition[] {
       label: Video.formatTime(state.loadTimePosition),
       relativeText: 'load time',
       isLoadTime: true,
+      isUserSaved: false,
+    });
+  }
+
+  // Add user saved position (after load time, before history)
+  if (state.userSavedPosition !== null) {
+    positions.push({
+      time: state.userSavedPosition.time,
+      label: state.userSavedPosition.label,
+      relativeText: 'saved position',
+      isLoadTime: false,
+      isUserSaved: true,
     });
   }
 
@@ -168,6 +228,7 @@ function getRestorePositions(state: PositionHistoryState): RestorePosition[] {
       label: entry.label,
       relativeText: entry.savedAt,
       isLoadTime: false,
+      isUserSaved: false,
     });
   });
 
@@ -255,6 +316,7 @@ function setupVideoTracking(
           console.info(
             `[StreamKeys] Load time position captured: ${Video.formatTime(state.loadTimePosition)}`
           );
+          emitPositionChanged();
         }
 
         if (readyForTrackingTimeout === null) {
@@ -377,6 +439,8 @@ export const PositionHistory = {
   reset: resetState,
   save: savePositionToHistory,
   record: recordPositionBeforeSeek,
+  /** Save user position (S key). Overwrites any existing user position. */
+  saveUserPosition: saveUserPosition,
   getPositions: getRestorePositions,
   setupTracking: setupVideoTracking,
   /** Exposed for testing - save with debounce logic, returns true if debounced */

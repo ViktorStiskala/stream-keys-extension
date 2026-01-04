@@ -124,10 +124,11 @@ function createHandler(config: HandlerConfig): HandlerAPI {
     keyboardHandler = keyboardAPI.handleKey;
     cleanupFns.push(keyboardAPI.cleanup);
   } else if (features.restorePosition && restorePositionAPI) {
-    // Lightweight keyboard handler for restore dialog only (R key + dialog keys)
+    // Lightweight keyboard handler for restore dialog only (R key + S key + dialog keys)
     // Used when keyboard feature is disabled but restorePosition is enabled
     const dialogKeyboardAPI = Keyboard.initDialogOnly({
       restorePosition: restorePositionAPI,
+      getVideoElement,
     });
     keyboardHandler = dialogKeyboardAPI.handleKey;
     cleanupFns.push(dialogKeyboardAPI.cleanup);

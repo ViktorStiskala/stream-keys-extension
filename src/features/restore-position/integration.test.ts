@@ -532,10 +532,11 @@ describe('Restore Position Integration', () => {
 
       ctx.restorePositionAPI!.openDialog();
 
-      // Press '0' to select first position
+      // Press '1' to select first history position
+      // Key 0 is reserved for load time, history starts at 1 (when no user saved position)
       const keyEvent = new KeyboardEvent('keydown', {
-        code: 'Digit0',
-        key: '0',
+        code: 'Digit1',
+        key: '1',
         bubbles: true,
       });
       const handled = ctx.restorePositionAPI!.handleDialogKeys(keyEvent);

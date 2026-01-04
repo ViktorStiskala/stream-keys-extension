@@ -88,6 +88,23 @@ export const DialogStyles = {
     overflow: hidden;
   `,
 
+  positionItemUserSaved: `
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: ${Styles.vars.spacing.md};
+    padding: ${Styles.vars.spacing.md} ${Styles.vars.spacing.lg} ${Styles.vars.spacing.lg} ${Styles.vars.spacing.lg};
+    background: ${Styles.vars.accent.green};
+    border: 1px solid ${Styles.vars.accent.greenBorder};
+    border-radius: ${Styles.vars.borderRadius.lg};
+    color: ${Styles.vars.text.primary};
+    font-size: ${Styles.vars.font.sizeLarge};
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: left;
+    overflow: hidden;
+  `,
+
   keyHint: `
     display: inline-flex;
     align-items: center;

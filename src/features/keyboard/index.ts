@@ -1,7 +1,7 @@
 // Keyboard feature - global key event handling
 
 import type { CleanupFn, StreamKeysVideoElement } from '@/types';
-import { Debug, Settings } from '@/core';
+import { Debug, Settings, Video } from '@/core';
 import type { RestorePositionAPI } from '@/features/restore-position';
 import type { SubtitlesAPI } from '@/features/subtitles';
 
@@ -45,6 +45,8 @@ const KEYBOARD_SEEK_FLAG_NO_VIDEO_TIMEOUT_MS = 500;
 export interface DialogOnlyConfig {
   /** RestorePosition API for dialog key handling */
   restorePosition: RestorePositionAPI;
+  /** Get the video element for S key position saving */
+  getVideoElement: () => StreamKeysVideoElement | null;
 }
 
 export interface DialogOnlyAPI {
@@ -55,11 +57,11 @@ export interface DialogOnlyAPI {
 }
 
 /**
- * Initialize lightweight keyboard handler for restore dialog only (R key + dialog keys)
+ * Initialize lightweight keyboard handler for restore dialog only (R key + S key + dialog keys)
  * Used when keyboard feature is disabled but restorePosition is enabled
  */
 function initDialogOnly(config: DialogOnlyConfig): DialogOnlyAPI {
-  const { restorePosition } = config;
+  const { restorePosition, getVideoElement } = config;
 
   const handleDialogKeys = (e: KeyboardEvent) => {
     // Handle dialog keys first (ESC, number keys when dialog is open)
@@ -78,6 +80,19 @@ function initDialogOnly(config: DialogOnlyConfig): DialogOnlyAPI {
       e.preventDefault();
       e.stopPropagation();
       restorePosition.openDialog();
+      return;
+    }
+
+    // Handle S key to save user position
+    if (e.code === 'KeyS' && Settings.isPositionHistoryEnabled()) {
+      const video = getVideoElement();
+      const currentTime = video?._streamKeysGetPlaybackTime?.() ?? video?.currentTime;
+      if (currentTime !== undefined && currentTime !== null) {
+        if (__DEV__) Debug.action('Key: S', `save position ${Video.formatTime(currentTime)}`);
+        e.preventDefault();
+        e.stopPropagation();
+        restorePosition.saveUserPosition(currentTime);
+      }
     }
   };
 
@@ -225,6 +240,19 @@ function initKeyboard(config: KeyboardConfig): KeyboardAPI {
       e.preventDefault();
       e.stopPropagation();
       restorePosition.openDialog();
+      return;
+    }
+
+    // Handle save user position
+    if (e.code === 'KeyS' && restorePosition && Settings.isPositionHistoryEnabled()) {
+      const video = getVideoElement();
+      const currentTime = video?._streamKeysGetPlaybackTime?.() ?? video?.currentTime;
+      if (currentTime !== undefined && currentTime !== null) {
+        if (__DEV__) Debug.action('Key: S', `save position ${Video.formatTime(currentTime)}`);
+        e.preventDefault();
+        e.stopPropagation();
+        restorePosition.saveUserPosition(currentTime);
+      }
       return;
     }
 

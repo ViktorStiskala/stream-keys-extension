@@ -9,6 +9,11 @@ const cssVars = {
     bgHover: 'rgba(255, 255, 255, 0.2)',
     bgActive: 'rgba(255, 255, 255, 0.1)',
   },
+  accent: {
+    green: 'rgba(76, 175, 80, 0.15)',
+    greenBorder: 'rgba(76, 175, 80, 0.4)',
+    greenHover: 'rgba(76, 175, 80, 0.25)',
+  },
   text: {
     primary: 'white',
     secondary: 'rgba(255, 255, 255, 0.6)',
