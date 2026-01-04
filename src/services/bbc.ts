@@ -256,6 +256,10 @@ function initBBCHandler(): void {
     getDialogContainer,
 
     subtitles: subtitleConfig,
+
+    features: {
+      fullscreenOverlay: false, // BBC handles focus properly, no click-through overlay needed
+    },
   });
 }
 

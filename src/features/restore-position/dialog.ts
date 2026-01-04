@@ -18,8 +18,6 @@ export const RELATIVE_TIME_CLASS = 'streamkeys-relative-time';
 // Dialog state
 let restoreDialog: HTMLDivElement | null = null;
 let dialogUpdateInterval: ReturnType<typeof setInterval> | null = null;
-// Store container for banner display (needed for Shadow DOM environments like BBC)
-let dialogContainer: HTMLElement | null = null;
 
 /**
  * Close the restore dialog
@@ -33,7 +31,6 @@ function closeRestoreDialog(): void {
     restoreDialog.remove();
     restoreDialog = null;
   }
-  dialogContainer = null;
 }
 
 /**
@@ -66,7 +63,7 @@ function restorePosition(
     const duration = video._streamKeysGetDuration?.() ?? video.duration;
     const success = seekToTime(time, duration);
     if (success) {
-      Banner.show(`Restored to ${Video.formatTime(time)}`, dialogContainer);
+      Banner.show(`Restored to ${Video.formatTime(time)}`);
       return;
     }
     // Fall through to direct seek if callback fails
@@ -74,7 +71,7 @@ function restorePosition(
 
   // Default: direct video.currentTime assignment
   video.currentTime = time;
-  Banner.show(`Restored to ${Video.formatTime(time)}`, dialogContainer);
+  Banner.show(`Restored to ${Video.formatTime(time)}`);
 }
 
 /**
@@ -153,14 +150,11 @@ function createRestoreDialog(
     return;
   }
 
-  // Store container for banner display (needed for Shadow DOM environments like BBC)
-  dialogContainer = getDialogContainer?.() ?? null;
-
   const allPositions = PositionHistory.getPositions(historyState);
 
   // Show message if no positions available
   if (allPositions.length === 0) {
-    Banner.show('No saved positions', dialogContainer);
+    Banner.show('No saved positions');
     return;
   }
 

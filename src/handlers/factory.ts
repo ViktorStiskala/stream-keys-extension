@@ -21,6 +21,7 @@ import {
   type RestorePositionAPI,
   type SubtitlesAPI,
 } from '@/features';
+import { Banner } from '@/ui/banner';
 import type { HandlerConfig, HandlerAPI } from './types';
 
 /** Interval for Media Session handler setup (ms) */
@@ -55,6 +56,12 @@ function createHandler(config: HandlerConfig): HandlerAPI {
   }
 
   const cleanupFns: CleanupFn[] = [];
+
+  // Configure Banner with custom container for Shadow DOM environments (e.g., BBC fullscreen)
+  if (config.getDialogContainer) {
+    Banner.init({ getContainer: config.getDialogContainer });
+  }
+  cleanupFns.push(Banner.cleanup);
 
   // Determine which features are enabled (all enabled by default)
   const features = {

@@ -16,6 +16,8 @@ information, and crucial rules for new code.
 When the prompt mentions a specific streaming provider, **always load the corresponding rules**:
 - **Disney+, Disney Plus, Disney** → `src/services/.cursor/rules/disney/RULE.md`
 - **HBO Max, HBO, Max** → `src/services/.cursor/rules/hbomax/RULE.md`
+- **YouTube** → `src/services/.cursor/rules/youtube/RULE.md`
+- **BBC, BBC iPlayer, iPlayer** → `src/services/.cursor/rules/bbc/RULE.md`
 
 These rules contain critical DOM selectors, Shadow DOM access patterns, and service-specific quirks that must be followed.
 
@@ -74,6 +76,7 @@ Use `npm run lint:fix` and `npm run format` to auto-fix issues.
   - `captureMediaKeys`: boolean - Capture keyboard media keys (default: true)
   - `customSeekEnabled`: boolean - Use custom seek time instead of default (default: false)
   - `seekTime`: number - Custom seek time in seconds (default: 10)
+  - `enabledServices`: Record<ServiceId, boolean> - Per-service enable/disable (default: all true)
 - Default languages: `['English', 'English [CC]', 'English CC']`
 - Settings injected as `window.__streamKeysSettings` before handlers load
 - Access in handlers via `window.__streamKeysSettings` or `Settings` module from `@/core`
