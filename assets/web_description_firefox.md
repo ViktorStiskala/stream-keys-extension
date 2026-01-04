@@ -1,0 +1,40 @@
+Tired of pressing **Space** and accidentally skipping ahead, restarting a movie, or triggering a random button? Frustrated that keyboard shortcuts stop working after exiting fullscreen?
+
+**Stream Keys** fixes broken keyboard behavior on streaming sites. Your shortcuts always do what you expect – play, pause, toggle subtitles, or go fullscreen – no matter what's focused on the page.
+
+## Supported Services
+
+Disney+ • HBO Max • BBC iPlayer • YouTube (position restore)
+
+## Key Features
+
+- **Space** always plays or pauses, even when a button is focused
+- **F** toggles fullscreen—and shortcuts keep working after you exit
+- **C** toggles subtitles based on your preferred languages
+- **Arrow keys** rewind or fast-forward on Disney+ and BBC iPlayer
+- **Media keys** work for play/pause and skipping
+
+## Never Lose Your Place—Position Restore
+
+Press **R** to instantly jump back to where you were. Perfect for when you overshoot a skip, accidentally seek too far, or want to rewatch a scene and then return.
+
+The position menu shows:
+
+- Your starting position when the video loaded
+- Your manually saved position (press **S** to bookmark any moment)
+- Up to 3 recent positions saved before you seeked
+- How long ago each position was saved
+- One-key access (press **0–4** to jump)
+
+Press **S** anytime to save your current position – great for marking a favorite scene or keeping your place before exploring. Stream Keys also automatically save positions whenever you use the timeline or skip buttons – so there's always somewhere to go back to. _It's like undo for video navigation._
+
+## Customizable
+
+- Set your preferred subtitle languages in the extension settings
+- Configure custom skip duration (5–120 seconds)
+- Enable or disable individual services
+- Turn off position history tracking if you don't need it
+
+---
+
+**Lightweight, privacy-friendly, and unobtrusive.** No tracking, no ads – just reliable keyboard shortcuts.

@@ -18,6 +18,7 @@
     "format": "prettier --write \"src/**/*.{ts,json,css,html}\"",
     "format:check": "prettier --check \"src/**/*.{ts,json,css,html}\"",
     "check": "npm run typecheck && npm run lint && npm run format:check",
+    "package": "rm -rf build/production && npm run build && npm run build:firefox && cd build/production/chrome/extension && zip -r ../../stream-keys-chrome.zip . && cd ../../firefox/extension && zip -r ../../stream-keys-firefox.zip .",
     "pretest": "npm run build",
     "test": "vitest run",
     "new-version": "vite build --mode development",
