@@ -54,12 +54,12 @@ fi
 
 # Set build-specific variables
 if [ "$BUILD_TYPE" = "dmg" ]; then
-    CODE_SIGN_IDENTITY="Developer ID Application"
+    CODE_SIGN_IDENTITY="Developer ID Application: Viktor Stískala (D8Z6CRA2WJ)"
     TOTAL_STEPS=7
     BUILD_DESCRIPTION="Signed + Notarized DMG"
     OUTPUT_FILE="stream-keys-safari.dmg"
 else
-    CODE_SIGN_IDENTITY="Apple Distribution"
+    CODE_SIGN_IDENTITY="Apple Distribution: Viktor Stískala (D8Z6CRA2WJ)"
     TOTAL_STEPS=5
     BUILD_DESCRIPTION="App Store Package"
     OUTPUT_FILE="stream-keys-safari-appstore.pkg"
@@ -206,7 +206,7 @@ else
     
     productbuild \
         --component "xcode/DerivedData/Build/Products/Release/Stream Keys.app" /Applications \
-        --sign "3rd Party Mac Developer Installer" \
+        --sign "3rd Party Mac Developer Installer: Viktor Stískala (D8Z6CRA2WJ)" \
         "$OUTPUT_FILE"
     
     echo "Package created: $OUTPUT_FILE"
