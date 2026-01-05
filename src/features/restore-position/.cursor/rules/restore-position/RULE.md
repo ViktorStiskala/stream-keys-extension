@@ -7,6 +7,26 @@ globs:
 
 # Position Restore Feature
 
+## File Structure
+
+```
+restore-position/
+  dialog.ts        <- Dialog controller (state, events, logic)
+  history.ts       <- Position history management
+  index.ts         <- Public API and feature initialization
+  ui/
+    dialog.ts      <- Dialog DOM creation (elements, builders)
+    styles.ts      <- CSS styles for the dialog
+```
+
+### Separation of Concerns
+
+- **`dialog.ts`** (controller): Module-level state, event handling, keyboard shortcuts, dialog lifecycle
+- **`ui/dialog.ts`** (view): Pure DOM creation functions (`createDialogDOM`, `createPositionItem`, `buildPositionList`)
+- **`ui/styles.ts`**: CSS-in-JS style definitions
+
+The controller imports from `./ui/dialog` and orchestrates the dialog lifecycle while delegating DOM creation to the UI module.
+
 ## Position History Algorithm
 
 ### State Management

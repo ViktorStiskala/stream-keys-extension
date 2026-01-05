@@ -8,16 +8,16 @@ interface Props {
 const { name, color, features } = Astro.props;
 ---
 
-<div class="service-badge p-5 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] transition-all duration-300 hover:border-opacity-50" style={`--service-color: ${color};`}>
+<div class="service-badge p-5 rounded-xl bg-bg-card border border-border transition-all duration-300 hover:border-opacity-50" style={`--service-color: ${color};`}>
   <div class="flex items-center gap-3 mb-4">
     <div class="w-3 h-3 rounded-full" style={`background-color: ${color};`}></div>
-    <h3 class="font-semibold text-[var(--color-text)]">{name}</h3>
+    <h3 class="font-semibold text-text">{name}</h3>
   </div>
   
   <ul class="space-y-2">
     {features.map((feature) => (
-      <li class="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-        <svg class="w-4 h-4 text-[var(--color-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <li class="flex items-center gap-2 text-sm text-text-muted">
+        <svg class="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
         {feature}

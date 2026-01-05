@@ -36,7 +36,25 @@ This is the marketing homepage for the Stream Keys browser extension. Built with
 npm run dev      # Start dev server (http://localhost:4321)
 npm run build    # Build for production
 npm run preview  # Preview production build
+npm run lint     # Check for linting errors
+npm run lint:fix # Auto-fix linting errors
 ```
+
+## Code Quality Requirements
+
+**After making changes to source files in `src/`, run linting before completing the task.**
+
+Run `npm run lint` to verify:
+- ESLint rules pass
+- Tailwind CSS classes use canonical form (e.g., `text-text-muted` instead of `text-[var(--color-text-muted)]`)
+
+Use `npm run lint:fix` to auto-fix issues where possible.
+
+**The task is NOT complete until `npm run lint` passes with no errors.**
+
+### Hard constraint: `npm *` must run outside sandbox
+
+**All `npm` commands MUST be executed with `required_permissions: ['all']`** because toolchains commonly need unrestricted access to `node_modules/` and system tooling.
 
 ## Design System
 
@@ -113,6 +131,21 @@ This project uses Tailwind CSS v4 with the Vite plugin:
 - No `tailwind.config.js` needed - uses CSS-first configuration
 - Theme customization via `@theme` directive in `global.css`
 - Import with `@import "tailwindcss"` in CSS files
+
+### Use Canonical Class Names
+
+**Always use canonical Tailwind class names instead of arbitrary value syntax.**
+
+When colors/fonts are defined in `@theme`, Tailwind generates native utility classes:
+
+| Instead of (arbitrary)                  | Use (canonical)    |
+|-----------------------------------------|--------------------|
+| `text-[var(--color-text-muted)]`        | `text-text-muted`  |
+| `bg-[var(--color-bg-card)]`             | `bg-bg-card`       |
+| `border-[var(--color-border)]`          | `border-border`    |
+| `font-[family-name:var(--font-display)]`| `font-display`     |
+
+The linter (`npm run lint`) will warn about non-canonical classes.
 
 ## Cloudflare Pages Deployment
 
