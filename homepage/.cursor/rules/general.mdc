@@ -19,13 +19,15 @@ This is the marketing homepage for the Stream Keys browser extension. Built with
 
 ```
 /homepage
-├── astro.config.mjs       # Astro + Tailwind + Cloudflare config
+├── astro.config.mjs       # Astro + Tailwind + Cloudflare + Icon config
 ├── tsconfig.json          # TypeScript config (extends astro/tsconfigs/strict)
 ├── public/                # Static assets (images, favicon)
 └── src/
     ├── components/        # Astro components
     ├── layouts/           # Page layouts
     ├── pages/             # Route pages
+    ├── scripts/           # Client-side TypeScript
+    │   └── restore-dialog/  # Interactive demo modules
     └── styles/            # Global CSS with Tailwind
 ```
 
@@ -51,6 +53,7 @@ Run `npm run check` to verify:
 - TypeScript types are correct (`tsc --noEmit`)
 - ESLint rules pass
 - Tailwind CSS classes use canonical form (e.g., `text-text-muted` instead of `text-[var(--color-text-muted)]`)
+- No deprecated class names (e.g., `shrink-0` not `flex-shrink-0`)
 - Code is formatted with Prettier
 
 Use `npm run lint:fix` and `npm run format` to auto-fix issues.
@@ -96,6 +99,7 @@ Use `npm run lint:fix` and `npm run format` to auto-fix issues.
 - `.gradient-text` - Purple to gold gradient text
 - `.glow-accent` - Purple glow shadow
 - `.glow-gold` - Gold glow shadow
+- `.demo-key` - Clickable keyboard key with hover/active states (for interactive demo)
 
 ## Components
 
@@ -104,6 +108,7 @@ Renders a styled keyboard key with optional description and animation.
 
 ```astro
 <KeyboardKey label="Space" description="Play/Pause" size="lg" animate />
+<KeyboardKey label="R" href="#restore" />  <!-- Clickable, scrolls to section -->
 ```
 
 Props:
@@ -112,6 +117,7 @@ Props:
 - `wide?`: boolean - Extra horizontal padding
 - `animate?`: boolean - Enable press animation
 - `size?`: 'sm' | 'md' | 'lg' - Key size
+- `href?`: string - Makes key clickable, renders as `<a>` with `cursor-pointer`
 
 ### FeatureCard.astro
 Card component for feature highlights.
@@ -121,14 +127,73 @@ Card component for feature highlights.
 ```
 
 ### ServiceBadge.astro
-Displays a supported service with its feature list.
+Displays a supported service with its feature list and icon.
 
 ```astro
-<ServiceBadge name="Disney+" color="#113ccf" features={['Feature 1', 'Feature 2']} />
+<ServiceBadge 
+  name="Disney+" 
+  color="#113ccf" 
+  icon="streamline-logos:disney-plus-logo-block"
+  features={['Feature 1', 'Feature 2']} 
+/>
 ```
 
+Props:
+- `name`: string - Service name
+- `color`: string - Brand color (used for hover glow)
+- `icon`: string - Iconify icon name
+- `features`: string[] - List of supported features
+
 ### RestoreDialog.astro
-Visual demo of the position restore dialog UI. No props required.
+Visual demo of the position restore dialog UI. No props required. Loads client-side script from `src/scripts/restore-dialog/index.ts`.
+
+## Interactive Demo (Restore Dialog)
+
+The homepage includes a fully interactive demo of the position restore feature. Located in `src/scripts/restore-dialog/`:
+
+```
+restore-dialog/
+├── index.ts         # Entry point, initialization
+├── config.ts        # Constants, video list, position generation
+├── state.ts         # State management (positions, current time, dialog state)
+├── types.ts         # TypeScript interfaces
+├── events.ts        # Custom events (timeupdate, historychange, closedialog)
+├── time.ts          # Time formatting utilities
+├── positions.ts     # Position list rendering and management
+├── dialog.ts        # Dialog open/close/toggle
+├── keyboard.ts      # Keyboard shortcuts (R, S, Escape, 0-9)
+├── banner.ts        # Banner notification display
+├── progress-bar.ts  # Fake video progress bar with drag support
+└── visibility.ts    # Intersection Observer for scoped shortcuts
+```
+
+### Key Patterns
+
+**Visibility-scoped shortcuts**: Keyboard shortcuts only work when the demo section (`#restore`) is visible. Uses `IntersectionObserver` in `visibility.ts`.
+
+**Custom events**: Components communicate via custom events dispatched on `window`:
+- `streamkeys:timeupdate` - Progress bar time changed
+- `streamkeys:historychange` - Position history modified
+- `streamkeys:closedialog` - Request to close dialog
+
+**Demo key buttons**: Clickable R/S buttons in the left column trigger the same actions as keyboard shortcuts. IDs: `demo-key-r`, `demo-key-s`.
+
+**Random content**: Video titles and initial positions are randomized on load and reset. See `VIDEOS` array and `getRandomVideoSeconds()` in `config.ts`.
+
+## Icons (Astro Icon + Iconify)
+
+Uses `astro-icon` with Iconify icon sets. Icons are tree-shaken - only used icons are bundled.
+
+```astro
+import { Icon } from "astro-icon/components";
+
+<Icon name="logos:chrome" class="w-6 h-6" />
+<Icon name="streamline-logos:disney-plus-logo-block" class="w-6 h-6" />
+```
+
+Installed icon sets:
+- `@iconify-json/logos` - Browser logos (Chrome, Firefox, Safari, Edge)
+- `@iconify-json/streamline-logos` - Service logos (Disney+, HBO Max, BBC iPlayer, YouTube)
 
 ## Tailwind v4 Notes
 
@@ -143,14 +208,18 @@ This project uses Tailwind CSS v4 with the Vite plugin:
 
 When colors/fonts are defined in `@theme`, Tailwind generates native utility classes:
 
-| Instead of (arbitrary)                  | Use (canonical)    |
+| Instead of (arbitrary/deprecated)       | Use (canonical)    |
 |-----------------------------------------|--------------------|
 | `text-[var(--color-text-muted)]`        | `text-text-muted`  |
 | `bg-[var(--color-bg-card)]`             | `bg-bg-card`       |
 | `border-[var(--color-border)]`          | `border-border`    |
 | `font-[family-name:var(--font-display)]`| `font-display`     |
+| `flex-shrink-0`                         | `shrink-0`         |
+| `flex-grow`                             | `grow`             |
+| `overflow-ellipsis`                     | `text-ellipsis`    |
+| `overflow-clip`                         | `text-clip`        |
 
-The linter (`npm run lint`) will warn about non-canonical classes.
+The linter (`npm run lint`) warns about non-canonical classes. Additionally, `npm run lint:classes` checks for deprecated Tailwind v3 class names.
 
 ## Cloudflare Pages Deployment
 

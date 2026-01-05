@@ -3,12 +3,16 @@
 import { getIsDialogOpen } from "./state";
 import { toggleDialog, closeDialog } from "./dialog";
 import { saveCurrentPosition, selectPositionByKey } from "./positions";
+import { getIsDemoVisible } from "./visibility";
 
 // ============================================================================
 // Keyboard Handler
 // ============================================================================
 
 function handleKeydown(e: KeyboardEvent): void {
+  // Only handle shortcuts when demo section is visible
+  if (!getIsDemoVisible()) return;
+
   // Skip if user is typing in an input field
   const target = e.target as HTMLElement;
   if (

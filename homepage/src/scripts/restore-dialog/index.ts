@@ -7,6 +7,7 @@ import { initCloseButton, closeDialog } from "./dialog";
 import { renderPositions, updateTimes } from "./positions";
 import { initProgressBar } from "./progress-bar";
 import { initKeyboard } from "./keyboard";
+import { initVisibilityObserver } from "./visibility";
 
 // ============================================================================
 // Initialization
@@ -30,6 +31,9 @@ function init(): void {
 
   // Initialize progress bar
   initProgressBar();
+
+  // Initialize visibility observer (enables keyboard shortcuts only when demo is visible)
+  initVisibilityObserver();
 
   // Listen for history changes to re-render
   window.addEventListener(EVENTS.HISTORY_CHANGE, () => {
