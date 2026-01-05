@@ -5,6 +5,7 @@ interface Props {
   wide?: boolean;
   animate?: boolean;
   size?: "sm" | "md" | "lg";
+  href?: string;
 }
 
 const {
@@ -13,6 +14,7 @@ const {
   wide = false,
   animate = false,
   size = "md",
+  href,
 } = Astro.props;
 
 const sizeClasses = {
@@ -22,16 +24,20 @@ const sizeClasses = {
 };
 
 const wideClass = wide ? "px-6" : "px-3";
+const cursorClass = href ? "cursor-pointer" : "cursor-default";
+const Tag = href ? "a" : "div";
 ---
 
 <div class="flex flex-col items-center gap-2 select-none">
-  <div
+  <Tag
+    href={href}
     class:list={[
       "keyboard-key",
-      "relative inline-flex items-center justify-center rounded-lg cursor-default",
+      "relative inline-flex items-center justify-center rounded-lg",
+      cursorClass,
       "bg-gradient-to-b from-key-bg to-[#151520]",
       "border border-key-border",
-      "font-mono font-semibold text-text",
+      "font-mono font-semibold text-text no-underline",
       "transition-all duration-150",
       "hover:border-accent hover:text-accent-bright",
       sizeClasses[size],
@@ -46,7 +52,7 @@ const wideClass = wide ? "px-6" : "px-3";
       class="absolute inset-0 rounded-lg bg-gradient-to-b from-white/5 to-transparent pointer-events-none"
     >
     </div>
-  </div>
+  </Tag>
   {
     description && (
       <span class="text-sm text-text-muted text-center">{description}</span>

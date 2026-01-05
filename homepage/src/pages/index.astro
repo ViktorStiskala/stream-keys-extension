@@ -75,7 +75,7 @@ const shortcuts = [
 ];
 ---
 
-<Layout title="Stream Keys - Video Keyboard Controls">
+<Layout title="Stream Keys Browser Extension – Video Keyboard Controls">
   <!-- Hero Section -->
   <section
     class="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden"
@@ -118,10 +118,15 @@ const shortcuts = [
       <div
         class="animate-fade-in delay-300 flex flex-wrap justify-center gap-4 mb-12"
       >
-        <KeyboardKey label="Space" description="Play/Pause" animate />
-        <KeyboardKey label="F" description="Fullscreen" />
-        <KeyboardKey label="C" description="Subtitles" />
-        <KeyboardKey label="R" description="Restore" />
+        <KeyboardKey
+          label="Space"
+          description="Play/Pause"
+          animate
+          href="#restore"
+        />
+        <KeyboardKey label="F" description="Fullscreen" href="#restore" />
+        <KeyboardKey label="C" description="Subtitles" href="#restore" />
+        <KeyboardKey label="R" description="Restore" href="#restore" />
       </div>
 
       <!-- Problem statement -->
@@ -257,11 +262,14 @@ const shortcuts = [
 
   <!-- Position Restore Section -->
   <section
-    class="px-4 bg-linear-to-b from-transparent via-bg-elevated/50 to-transparent"
+    id="restore"
+    class="px-8 bg-linear-to-b from-transparent via-bg-elevated/50 to-transparent"
   >
     <div class="max-w-6xl mx-auto">
       <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div>
+        <div
+          class="text-center lg:text-left max-w-xl mx-auto lg:mx-0 lg:max-w-none"
+        >
           <h2 class="text-3xl md:text-4xl font-bold mb-4 font-display">
             Never Lose Your Place
           </h2>
@@ -270,7 +278,7 @@ const shortcuts = [
           >
             ✨ Try it out – the demo is fully interactive!
           </p>
-          <p class="text-text-muted mb-6 leading-relaxed">
+          <p class="text-text-muted mb-6 leading-relaxed text-left">
             Press <kbd
               class="inline-flex items-center justify-center min-w-[28px] h-7 px-2 mx-1 bg-key-bg border border-key-border rounded font-mono font-semibold text-sm text-text align-middle"
               style="box-shadow: 0 2px 0 var(--color-key-shadow);">R</kbd
@@ -278,7 +286,7 @@ const shortcuts = [
             a skip, accidentally seek too far, or want to rewatch a scene.
           </p>
 
-          <ul class="space-y-4 mb-8">
+          <ul class="space-y-4 mb-8 text-left inline-block">
             <li class="flex items-start gap-3">
               <span
                 class="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm shrink-0 mt-0.5"
@@ -326,12 +334,12 @@ const shortcuts = [
             </li>
           </ul>
 
-          <p class="text-sm text-text-subtle italic">
+          <p class="text-sm text-text-subtle italic text-left">
             It's like undo for video navigation.
           </p>
         </div>
 
-        <div class="lg:pl-8">
+        <div class="lg:pl-8 flex justify-center lg:justify-start">
           <RestoreDialog />
         </div>
       </div>
