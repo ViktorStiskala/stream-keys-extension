@@ -4,7 +4,23 @@ import KeyboardKey from "../components/KeyboardKey.astro";
 import FeatureCard from "../components/FeatureCard.astro";
 import ServiceBadge from "../components/ServiceBadge.astro";
 import RestoreDialog from "../components/RestoreDialog.astro";
+import InlineKey from "../components/ui/InlineKey.astro";
+import CheckItem from "../components/ui/CheckItem.astro";
+import BrowserCard from "../components/ui/BrowserCard.astro";
+import DemoKey from "../components/ui/DemoKey.astro";
 import { Icon } from "astro-icon/components";
+
+const links = {
+  chromeWebStore:
+    "https://chromewebstore.google.com/detail/stream-keys-video-keyboar/opmlgkagmnkphbhagemjiconiencmpgd?hl=en",
+  firefoxAddons:
+    "https://addons.mozilla.org/en-US/firefox/addon/stream-keys-video-controls/",
+  githubReleases:
+    "https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest",
+  githubRepo: "https://github.com/ViktorStiskala/chrome-stream-keys",
+  githubLicense:
+    "https://github.com/ViktorStiskala/chrome-stream-keys/blob/main/LICENSE",
+};
 
 const services = [
   {
@@ -153,18 +169,14 @@ const shortcuts = [
         class="animate-fade-in delay-500 flex flex-wrap justify-center gap-4"
       >
         <a
-          href="https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest"
+          href="#install"
           class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-bright text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 glow-accent"
         >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path
-              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-            ></path>
-          </svg>
+          <Icon name="material-symbols:download-rounded" class="w-5 h-5" />
           Download
         </a>
         <a
-          href="#features"
+          href="#restore"
           class="inline-flex items-center gap-2 px-6 py-3 bg-surface hover:bg-bg-card text-text font-semibold rounded-xl border border-border transition-all duration-200 hover:border-accent/50"
         >
           Learn More
@@ -222,10 +234,10 @@ const shortcuts = [
           Never Lose Your Place — <span class="text-accent">Try the Demo</span>
         </h2>
         <p class="text-text-muted max-w-2xl mx-auto">
-          Press <kbd
-            class="inline-flex items-center justify-center min-w-[28px] h-7 px-2 mx-1 bg-key-bg border border-key-border rounded font-mono font-semibold text-sm text-text align-middle cursor-default"
-            style="box-shadow: 0 2px 0 var(--color-key-shadow);">R</kbd
-          > to instantly jump back to where you were. Perfect for when you overshoot
+          Press <InlineKey class="min-w-[28px] h-7 px-2 mx-1 text-sm"
+            >R</InlineKey
+          >
+          to instantly jump back to where you were. Perfect for when you overshoot
           a skip, accidentally seek too far, or want to rewatch a scene.
         </p>
       </div>
@@ -243,35 +255,23 @@ const shortcuts = [
           <div
             class="flex flex-wrap justify-center lg:justify-start gap-6 mb-6"
           >
-            <div class="flex items-center gap-3">
-              <button
-                id="demo-key-r"
-                class="demo-key inline-flex items-center justify-center w-12 h-12 bg-gradient-to-b from-key-bg to-[#151520] border border-key-border rounded-lg font-mono font-bold text-lg text-text cursor-pointer transition-all duration-150 hover:border-accent hover:text-accent-bright"
-                style="box-shadow: 0 4px 0 var(--color-key-shadow), 0 6px 20px rgba(0, 0, 0, 0.3);"
-                aria-label="Press R to toggle restore dialog"
-              >
-                R
-              </button>
-              <span class="text-text-muted text-sm">Toggle Restore Dialog</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <button
-                id="demo-key-s"
-                class="demo-key inline-flex items-center justify-center w-12 h-12 bg-gradient-to-b from-key-bg to-[#151520] border border-key-border rounded-lg font-mono font-bold text-lg text-text cursor-pointer transition-all duration-150 hover:border-accent hover:text-accent-bright"
-                style="box-shadow: 0 4px 0 var(--color-key-shadow), 0 6px 20px rgba(0, 0, 0, 0.3);"
-                aria-label="Press S to save current position"
-              >
-                S
-              </button>
-              <span class="text-text-muted text-sm">Save Current Position</span>
-            </div>
+            <DemoKey
+              id="demo-key-r"
+              label="R"
+              description="Toggle Restore Dialog"
+              ariaLabel="Press R to toggle restore dialog"
+            />
+            <DemoKey
+              id="demo-key-s"
+              label="S"
+              description="Save Current Position"
+              ariaLabel="Press S to save current position"
+            />
           </div>
           <p class="text-text-muted text-sm mb-8 text-left">
             Seek anywhere in the video – previous position saves automatically.
-            Changed your mind? Press <kbd
-              class="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 mx-0.5 bg-key-bg border border-key-border rounded font-mono font-semibold text-xs text-text align-middle cursor-default"
-              style="box-shadow: 0 2px 0 var(--color-key-shadow);">R</kbd
-            > to open position restore dialog, and instantly jump back.
+            Changed your mind? Press <InlineKey>R</InlineKey> to open position restore
+            dialog, and instantly jump back.
           </p>
 
           <!-- Supported Features -->
@@ -281,52 +281,20 @@ const shortcuts = [
             Supported Features
           </h3>
           <ul class="space-y-4 mb-8 text-left inline-block">
-            <li class="flex items-start gap-3">
-              <span
-                class="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm shrink-0 mt-0.5"
-                >✓</span
-              >
-              <span class="text-text-muted"
-                >Saves load position when the video restores to last known
-                position</span
-              >
-            </li>
-            <li class="flex items-start gap-3">
-              <span
-                class="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm shrink-0 mt-0.5"
-                >✓</span
-              >
-              <span class="text-text-muted"
-                >Manually saved positions (press <kbd
-                  class="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 mx-0.5 bg-key-bg border border-key-border rounded font-mono font-semibold text-xs text-text align-middle cursor-default"
-                  style="box-shadow: 0 2px 0 var(--color-key-shadow);">S</kbd
-                > to bookmark)</span
-              >
-            </li>
-            <li class="flex items-start gap-3">
-              <span
-                class="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm shrink-0 mt-0.5"
-                >✓</span
-              >
-              <span class="text-text-muted"
-                >Up to 3 recent positions from before you seeked</span
-              >
-            </li>
-            <li class="flex items-start gap-3">
-              <span
-                class="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm shrink-0 mt-0.5"
-                >✓</span
-              >
-              <span class="text-text-muted"
-                >One-key access – press <kbd
-                  class="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 mx-0.5 bg-key-bg border border-key-border rounded font-mono font-semibold text-xs text-text align-middle cursor-default"
-                  style="box-shadow: 0 2px 0 var(--color-key-shadow);">0</kbd
-                >–<kbd
-                  class="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 mx-0.5 bg-key-bg border border-key-border rounded font-mono font-semibold text-xs text-text align-middle cursor-default"
-                  style="box-shadow: 0 2px 0 var(--color-key-shadow);">3</kbd
-                > to jump directly</span
-              >
-            </li>
+            <CheckItem>
+              Saves load position when the video restores to last known position
+            </CheckItem>
+            <CheckItem>
+              Manually saved positions (press <InlineKey>S</InlineKey> to bookmark)
+            </CheckItem>
+            <CheckItem
+              >Up to 3 recent positions from before you seeked</CheckItem
+            >
+            <CheckItem>
+              One-key access – press <InlineKey>0</InlineKey>–<InlineKey
+                >4</InlineKey
+              > to jump directly
+            </CheckItem>
           </ul>
 
           <p class="text-sm text-text-subtle italic text-left">
@@ -397,11 +365,11 @@ const shortcuts = [
               aria-label="Reset playback"
               title="Reset to initial position"
             >
-              <svg viewBox="-3 -1 32 32" class="w-5 h-5 fill-current">
-                <path
-                  d="M6.962 4.002V3c0-1.104-.896-2-2-2s-2 .896-2 2v6c0 1.105.895 2 2 2h6c1.104 0 2-.896 2-2s-.896-2-2-2H7.64c1.789-1.26 3.97-2 6.322-2 6.071 0 11 4.929 11 11s-4.929 11-11 11c-5.786 0-10.535-4.476-10.968-10.152-.084-1.101-1.045-1.926-2.146-1.842s-1.926 1.045-1.842 2.146C-.584 23.893 5.891 30 13.782 30c8.279 0 15-6.721 15-15s-6.721-15-15-15c-3.375 0-6.492 1.117-9 3.002z"
-                ></path>
-              </svg>
+              <Icon
+                name="system-uicons:reset"
+                class="w-5 h-5"
+                stroke-width="2"
+              />
             </button>
           </div>
 
@@ -446,32 +414,32 @@ const shortcuts = [
         <FeatureCard
           title="Works in Fullscreen"
           description="All shortcuts work reliably in fullscreen mode, including after you exit fullscreen. No more clicking to regain focus."
-          icon="🖥️"
+          icon="tabler:arrows-maximize"
         />
         <FeatureCard
           title="Media Keys Support"
           description="Control playback with your keyboard's media keys. Play/pause and skip forward/backward work out of the box."
-          icon="⌨️"
+          icon="heroicons:play-pause-solid"
         />
         <FeatureCard
           title="Custom Seek Time"
           description="Override the default 10-second skip duration. Configure any value from 5 to 120 seconds in the settings."
-          icon="⏱️"
+          icon="material-symbols:timer-play"
         />
         <FeatureCard
           title="Smart Subtitles"
           description="Press C to toggle subtitles. The extension remembers your preferred languages and picks the best match."
-          icon="💬"
+          icon="material-symbols:closed-caption-rounded"
         />
         <FeatureCard
           title="Privacy First"
           description="No tracking, no analytics, no external requests. Your viewing habits stay private. Completely open source."
-          icon="🔒"
+          icon="material-symbols:shield-lock-rounded"
         />
         <FeatureCard
           title="Lightweight"
           description="Minimal footprint with zero impact on page performance. Only activates on supported streaming sites."
-          icon="⚡"
+          icon="material-symbols:rocket-launch-rounded"
         />
       </div>
     </div>
@@ -520,73 +488,43 @@ const shortcuts = [
       </p>
 
       <!-- Browser options -->
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <a
-          href="https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest"
-          class="group p-6 rounded-2xl bg-bg-card border border-border hover:border-accent/50 transition-all duration-300"
-        >
-          <Icon name="logos:chrome" class="w-16 h-16 mx-auto mb-4" />
-          <h3 class="font-semibold mb-2">Chrome</h3>
-          <p class="text-sm text-text-muted">Download ZIP</p>
-        </a>
-
-        <a
-          href="https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest"
-          class="group p-6 rounded-2xl bg-bg-card border border-border hover:border-accent/50 transition-all duration-300"
-        >
-          <Icon name="logos:firefox" class="w-16 h-16 mx-auto mb-4" />
-          <h3 class="font-semibold mb-2">Firefox</h3>
-          <p class="text-sm text-text-muted">Download ZIP</p>
-        </a>
-
-        <a
-          href="https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest"
-          class="group p-6 rounded-2xl bg-bg-card border border-border hover:border-accent/50 transition-all duration-300"
-        >
-          <Icon name="logos:safari" class="w-16 h-16 mx-auto mb-4" />
-          <h3 class="font-semibold mb-2">Safari</h3>
-          <p class="text-sm text-text-muted">Download DMG</p>
-        </a>
-
-        <a
-          href="https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest"
-          class="group p-6 rounded-2xl bg-bg-card border border-border hover:border-accent/50 transition-all duration-300"
-        >
-          <Icon name="logos:microsoft-edge" class="w-16 h-16 mx-auto mb-4" />
-          <h3 class="font-semibold mb-2">Edge</h3>
-          <p class="text-sm text-text-muted">Download ZIP</p>
-        </a>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <BrowserCard
+          name="Chrome"
+          icon="logos:chrome"
+          href={links.chromeWebStore}
+          label="Chrome Web Store"
+        />
+        <BrowserCard
+          name="Firefox"
+          icon="logos:firefox"
+          href={links.firefoxAddons}
+          label="Firefox Add-ons"
+        />
+        <BrowserCard
+          name="Safari"
+          icon="logos:safari"
+          href={links.githubReleases}
+          label="Download DMG"
+        />
+        <BrowserCard
+          name="Edge"
+          icon="logos:microsoft-edge"
+          href={links.githubReleases}
+          label="Download ZIP"
+        />
       </div>
 
-      <!-- Manual install instructions -->
-      <details
-        class="text-left max-w-2xl mx-auto bg-bg-card rounded-xl border border-border overflow-hidden"
-      >
-        <summary
-          class="px-6 py-4 cursor-pointer text-text font-medium hover:bg-surface transition-colors"
+      <!-- GitHub download -->
+      <div class="flex justify-center mb-12">
+        <a
+          href={links.githubReleases}
+          class="inline-flex items-center gap-2 px-6 py-3 bg-surface hover:bg-bg-card text-text font-semibold rounded-xl border border-border transition-all duration-200 hover:border-accent/50"
         >
-          Manual Installation (Chrome)
-        </summary>
-        <div
-          class="px-6 py-4 border-t border-border text-sm text-text-muted space-y-3"
-        >
-          <ol class="list-decimal list-inside space-y-2">
-            <li>Download the ZIP archive from the releases page</li>
-            <li>
-              Extract to a permanent location (the extension loads from this
-              folder)
-            </li>
-            <li>
-              Open Chrome and go to <code
-                class="px-2 py-0.5 bg-surface rounded text-text"
-                >chrome://extensions/</code
-              >
-            </li>
-            <li>Enable "Developer mode" in the top right</li>
-            <li>Click "Load unpacked" and select the extension folder</li>
-          </ol>
-        </div>
-      </details>
+          <Icon name="streamline-logos:github-logo-2-solid" class="w-5 h-5" />
+          Download from GitHub
+        </a>
+      </div>
     </div>
   </section>
 
@@ -594,27 +532,29 @@ const shortcuts = [
   <footer class="py-12 px-4 border-t border-border">
     <div class="max-w-6xl mx-auto">
       <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 md:flex-1">
           <img src="/images/icon.svg" alt="Stream Keys" class="w-8 h-8" />
           <span class="font-semibold">Stream Keys</span>
         </div>
 
         <div class="flex items-center gap-6 text-sm text-text-muted">
           <a
-            href="https://github.com/ViktorStiskala/chrome-stream-keys"
-            class="hover:text-text transition-colors"
+            href={links.githubRepo}
+            class="inline-flex items-center gap-1.5 hover:text-text transition-colors"
           >
+            <Icon name="streamline-logos:github-logo-2-solid" class="w-4 h-4" />
             GitHub
           </a>
           <a
-            href="https://github.com/ViktorStiskala/chrome-stream-keys/blob/main/LICENSE"
-            class="hover:text-text transition-colors"
+            href={links.githubLicense}
+            class="inline-flex items-center gap-1.5 hover:text-text transition-colors"
           >
+            <Icon name="material-symbols:license-rounded" class="w-4 h-4" />
             MIT License
           </a>
         </div>
 
-        <p class="text-sm text-text-subtle">
+        <p class="text-sm text-text-subtle md:flex-1 md:text-right">
           No tracking. No ads. Just keyboard shortcuts.
         </p>
       </div>

@@ -32,11 +32,35 @@ export const VIDEOS = [
   },
   {
     title: "Subtitles Gone Wrong",
-    subtitle: "S2 E11: Speaking Foreign Language",
+    subtitle: "S2 E11: [\u200aPeople speaking foreign language\u200a]",
   },
   {
     title: "The Mysterious Mute Button",
     subtitle: "S7 E4: Sound From Unknown Tab",
+  },
+  {
+    title: "Where Did I Leave Off",
+    subtitle: "S8 E3: The Quest for the Timeline",
+  },
+  {
+    title: "Mouse Required",
+    subtitle: "S1 E4: When Keyboards Don't Work",
+  },
+  {
+    title: "The Custom Player",
+    subtitle: "S4 E7: Reinventing The Wheel Badly",
+  },
+  {
+    title: "F Doesn't Fullscreen",
+    subtitle: "S5 E11: Non-Standard Controls",
+  },
+  {
+    title: "Position History",
+    subtitle: "S6 E2: If Only I Could Go Back",
+  },
+  {
+    title: "The Unmapped Keys",
+    subtitle: "S3 E5: Arrow Keys Do Nothing",
   },
 
   // General Comedy TV Series
@@ -62,6 +86,24 @@ export const VIDEOS = [
   },
   { title: "Picture in Picture: Denied", subtitle: "2023 • DRM Documentary" },
   { title: "The Phantom Click", subtitle: "2021 • UI/UX Horror" },
+  {
+    title: "Seeking Without Scrubbing",
+    subtitle: "2024 • Time Travel Impossible",
+  },
+  {
+    title: "The Position That Wasn't Saved",
+    subtitle: "2023 • Memory Loss Drama",
+  },
+  { title: "C for Captions: A Story", subtitle: "2022 • Lost in Translation" },
+  {
+    title: "Return of the Native Controls",
+    subtitle: "2024 • Revenge of Accessibility",
+  },
+  {
+    title: "Keyboard Shortcuts: The Forgotten Art",
+    subtitle: "2023 • Historical Documentary",
+  },
+  { title: "Focus Trap", subtitle: "2024 • Psychological Horror" },
 
   // General Comedy Movies
   { title: "The Incredibly Long Meeting", subtitle: "2023 • Corporate Horror" },

@@ -1,4 +1,6 @@
 ---
+import { Icon } from "astro-icon/components";
+
 interface Props {
   title: string;
   description: string;
@@ -18,7 +20,7 @@ const { title, description, icon } = Astro.props;
   </div>
 
   <div class="relative z-10">
-    {icon && <div class="mb-4 text-3xl">{icon}</div>}
+    {icon && <Icon name={icon} class="w-8 h-8 mb-4 text-accent" />}
     <h3 class="text-lg font-semibold mb-2 font-display text-text">
       {title}
     </h3>

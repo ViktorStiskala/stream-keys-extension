@@ -1,0 +1,22 @@
+---
+interface Props {
+  id: string;
+  label: string;
+  description: string;
+  ariaLabel: string;
+}
+
+const { id, label, description, ariaLabel } = Astro.props;
+---
+
+<div class="flex items-center gap-3">
+  <button
+    id={id}
+    class="demo-key inline-flex items-center justify-center w-12 h-12 bg-gradient-to-b from-key-bg to-[#151520] border border-key-border rounded-lg font-mono font-bold text-lg text-text cursor-pointer transition-all duration-150 hover:border-accent hover:text-accent-bright"
+    style="box-shadow: 0 4px 0 var(--color-key-shadow), 0 6px 20px rgba(0, 0, 0, 0.3);"
+    aria-label={ariaLabel}
+  >
+    {label}
+  </button>
+  <span class="text-text-muted text-sm">{description}</span>
+</div>

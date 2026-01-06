@@ -66,20 +66,34 @@ function handleKeydown(e: KeyboardEvent): void {
 // Demo Key Click Handlers
 // ============================================================================
 
+// Prevent Space from activating buttons - ironic since the extension fixes this!
+function preventSpaceActivation(e: KeyboardEvent): void {
+  if (e.key === " " || e.key === "Spacebar") {
+    e.preventDefault();
+  }
+}
+
 function initDemoKeys(): void {
   const keyR = document.getElementById("demo-key-r");
   const keyS = document.getElementById("demo-key-s");
+  const resetBtn = document.getElementById("video-reset-btn");
 
   if (keyR) {
     keyR.addEventListener("click", () => {
       toggleDialog();
     });
+    keyR.addEventListener("keydown", preventSpaceActivation);
   }
 
   if (keyS) {
     keyS.addEventListener("click", () => {
       saveCurrentPosition();
     });
+    keyS.addEventListener("keydown", preventSpaceActivation);
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("keydown", preventSpaceActivation);
   }
 }
 
