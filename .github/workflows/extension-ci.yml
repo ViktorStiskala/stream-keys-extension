@@ -1,15 +1,24 @@
-name: CI
+name: Extension CI
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/extension/**'
+      - '.github/workflows/extension-ci.yml'
   pull_request:
+    paths:
+      - 'apps/extension/**'
+      - '.github/workflows/extension-ci.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     name: Build and test
+    defaults:
+      run:
+        working-directory: apps/extension
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,6 +28,7 @@ jobs:
         with:
           node-version-file: '.node-version'
           cache: 'npm'
+          cache-dependency-path: apps/extension/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -38,6 +48,9 @@ jobs:
   build-safari:
     runs-on: macos-latest
     name: Build Safari extension
+    defaults:
+      run:
+        working-directory: apps/extension
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,6 +60,7 @@ jobs:
         with:
           node-version-file: '.node-version'
           cache: 'npm'
+          cache-dependency-path: apps/extension/package-lock.json
 
       - name: Install dependencies
         run: npm ci

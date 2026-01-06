@@ -1,10 +1,10 @@
 ---
 description: Apply when working on the restore position demo section in the homepage, modifying files in src/scripts/restore-dialog/, working with RestoreDialog.astro component, DemoKey or InlineKey components with action prop, progress bar functionality, or adding new interactive keyboard shortcuts to the demo.
 globs:
-  - homepage/src/scripts/restore-dialog/**
-  - homepage/src/components/RestoreDialog.astro
-  - homepage/src/components/keyboard/DemoKey.astro
-  - homepage/src/components/keyboard/InlineKey.astro
+  - apps/homepage/src/scripts/restore-dialog/**
+  - apps/homepage/src/components/RestoreDialog.astro
+  - apps/homepage/src/components/keyboard/DemoKey.astro
+  - apps/homepage/src/components/keyboard/InlineKey.astro
 ---
 
 # Interactive Demo (Restore Position)

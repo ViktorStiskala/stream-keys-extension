@@ -22,10 +22,14 @@
         "**/id_dsa",
         "**/.ssh/id_*",
         "**/.cursor/mcp.json",
-        "!**/.env.example"
+        "!**/.env.example",
     ],
     "[markdown]": {
         "editor.wordWrap": "on",
         "editor.wordWrapColumn": 120
+    },
+    "files.exclude": {
+        "apps/extension/.chrome-profile": true,
+        "apps/extension/.firefox-profile": true
     }
 }

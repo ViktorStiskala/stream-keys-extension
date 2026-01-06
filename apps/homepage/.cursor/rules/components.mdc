@@ -1,8 +1,8 @@
 ---
 description: Apply when creating new components, modifying existing components in src/components/, working with Tailwind Variants in src/styles/variants/, refactoring component styling, adding new primitives, or debugging component import issues. Essential for understanding the component architecture, variant system, folder organization, and import paths.
 globs:
-  - homepage/src/components/**
-  - homepage/src/styles/variants/**
+  - apps/homepage/src/components/**
+  - apps/homepage/src/styles/variants/**
 ---
 
 # Component System

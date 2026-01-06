@@ -6,17 +6,19 @@ description: Review source code for bugs, consistency issues, and documentation 
 
 Perform a comprehensive code review of the StreamKeys extension, focusing on bugs, consistency, test quality, and documentation sync. After review, run linting and tests.
 
+**Note:** This command is for reviewing the browser extension (`apps/extension/`).
+
 ## Instructions
 
 ### Step 1: Discover and Load All Cursor Rules
 
-Dynamically find and read ALL cursor rules in the codebase:
+Dynamically find and read ALL cursor rules in the extension codebase:
 
 ```bash
-find . -path '**/.cursor/rules/**/*.mdc' -type f 2>/dev/null
+find apps/extension -path '**/.cursor/rules/**/*.mdc' -type f 2>/dev/null
 ```
 
-Read each discovered rule file to understand project conventions and requirements. This ensures any new rules added in nested directories (e.g., `src/features/restore-position/.cursor/rules/`) are automatically included.
+Read each discovered rule file to understand project conventions and requirements. This ensures any new rules added in nested directories (e.g., `apps/extension/src/features/restore-position/.cursor/rules/`) are automatically included.
 
 ### Step 2: Determine Review Scope
 
@@ -33,7 +35,7 @@ If on a branch other than `main`:
 4. Still verify flag/pattern consistency across the full codebase
 
 If on `main` or no branch context provided:
-- Review the entire `src/` directory
+- Review the entire `apps/extension/src/` directory
 
 ### Step 3: Feature Condition Verification (CRITICAL)
 
@@ -77,8 +79,8 @@ Affected code paths that ALL needed the check:
 
 #### Key Areas to Verify:
 
-- `src/handlers/factory.ts` - all seek-related code paths
-- `src/features/keyboard/index.ts` - keyboard handling
+- `apps/extension/src/handlers/factory.ts` - all seek-related code paths
+- `apps/extension/src/features/keyboard/index.ts` - keyboard handling
 - Media Session handlers (`navigator.mediaSession.setActionHandler`)
 - Button interception handlers
 - Any new feature modules
@@ -161,7 +163,7 @@ Organize findings into categories:
 ## Code Review Summary
 
 ### Branch: [branch name or "main"]
-### Files Reviewed: [count or "all src/"]
+### Files Reviewed: [count or "all apps/extension/src/"]
 ### Changes Since origin/main: [summary if applicable]
 
 ---
@@ -203,14 +205,14 @@ If documentation drift is found:
 
 ### Step 8: Run Verification Suite
 
-After completing the code review, run the full verification suite:
+After completing the code review, run the full verification suite from `apps/extension/`:
 
 #### 8.1 Production Build (Required First)
 
 Build the production extension to ensure tests can verify no debug code is included:
 
 ```bash
-npm run build
+cd apps/extension && npm run build
 ```
 
 This must complete successfully before running tests. The production build:
@@ -223,7 +225,7 @@ This must complete successfully before running tests. The production build:
 Run all code quality checks:
 
 ```bash
-npm run check
+cd apps/extension && npm run check
 ```
 
 This runs:
@@ -238,7 +240,7 @@ Report any failures with file locations and error messages.
 Run the complete test suite:
 
 ```bash
-npm test
+cd apps/extension && npm test
 ```
 
 Report any test failures with:

@@ -1,5 +1,5 @@
 ---
-globs: homepage/**
+globs: apps/homepage/**
 alwaysApply: false
 ---
 # Stream Keys Homepage Development Notes
@@ -18,7 +18,7 @@ This is the marketing homepage for the Stream Keys browser extension. Built with
 ## Project Structure
 
 ```
-/homepage
+apps/homepage/
 ├── astro.config.mjs       # Astro + Tailwind + Cloudflare + Icon config
 ├── eslint.config.js       # ESLint flat config with Tailwind plugin
 ├── tsconfig.json          # TypeScript config (extends astro/tsconfigs/strict)
@@ -69,10 +69,6 @@ Run `npm run check` to verify:
 Use `npm run lint:fix` and `npm run format` to auto-fix issues.
 
 **The task is NOT complete until `npm run check` passes with no errors.**
-
-### Hard constraint: `npm *` must run outside sandbox
-
-**All `npm` commands MUST be executed with `required_permissions: ['all']`** because toolchains commonly need unrestricted access to `node_modules/` and system tooling.
 
 ## Design System
 
@@ -276,18 +272,3 @@ The `@astrojs/cloudflare` adapter is configured for static output.
 3. **Images**: Place in `public/images/`, reference with `/images/...`
 4. **Animations**: Prefer CSS animations over JavaScript for performance
 5. **Accessibility**: Include proper ARIA labels and semantic HTML
-
-## Cursor Rules Maintenance (Plan Mode)
-
-Homepage cursor rules are located in `homepage/.cursor/rules/`.
-
-**Hard Constraints:**
-
-1. **Rule Review in Plans**: When operating in plan mode, ALWAYS include a step to review and update all homepage cursor rules (`homepage/.cursor/rules/*.mdc`) at the end of the plan. This ensures documentation stays synchronized with implementation changes.
-
-2. **New Rule Consideration**: When in plan mode implementing complex functionality (new patterns, architectural changes, new integrations), the agent MUST:
-   - First assess whether a new cursor rule would benefit future development
-   - If benefits exist, describe the specific reasons (e.g., "This introduces a new state management pattern that future agents need to understand to avoid breaking changes")
-   - Propose a name for the rule (e.g., `components.mdc`, `state-management.mdc`)
-   - Then ask the user whether to add creating a new cursor rule to the plan
-   - Only ask when there are clear benefits - do not ask for simple changes

@@ -1,6 +1,13 @@
-build/
+# Dependencies
 node_modules/
-.chrome-profile/
-.firefox-profile/
-.cursor/debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+
+# Environment (in case of root .env)
 .env
+.env.local

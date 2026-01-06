@@ -6,9 +6,11 @@ description: Debug StreamKeys extension issues using runtime logs
 
 Read the debug log from the last dev mode session and analyze the issue described by the user.
 
+**Note:** This command is for debugging the browser extension (`apps/extension/`).
+
 ## Instructions
 
-1. Read the debug log file at `.cursor/debug.log`
+1. Read the debug log file at `apps/extension/.cursor/debug.log`
 2. Analyze the log output in context of the user's issue description
 3. Look for:
    - Error messages or warnings
@@ -20,7 +22,7 @@ Read the debug log from the last dev mode session and analyze the issue describe
 
 ## Context
 
-The debug log contains all `console.log/warn/error` output from the extension running in dev mode (`npm run dev`). Each log entry from StreamKeys is prefixed with `[StreamKeys]`.
+The debug log contains all `console.log/warn/error` output from the extension running in dev mode (`npm run dev` from `apps/extension/`). Each log entry from StreamKeys is prefixed with `[StreamKeys]`.
 
 ### Provider Detection
 
@@ -29,9 +31,9 @@ The log shows which streaming provider is being used. Look for:
 - `[StreamKeys] <Provider> extension loaded` message
 
 **When you identify the provider, add the following to context:**
-- Provider-specific rules: `src/services/.cursor/rules/<provider>.mdc` (e.g., `src/services/.cursor/rules/disney.mdc` for Disney+)
-- Service handler file: `src/services/<provider>.ts`
-- Handler configuration patterns: `.cursor/rules/handlers.mdc`
+- Provider-specific rules: `apps/extension/src/services/.cursor/rules/<provider>.mdc` (e.g., `apps/extension/src/services/.cursor/rules/disney.mdc` for Disney+)
+- Service handler file: `apps/extension/src/services/<provider>.ts`
+- Handler configuration patterns: `apps/extension/.cursor/rules/handlers.mdc`
 
 ### Settings
 
