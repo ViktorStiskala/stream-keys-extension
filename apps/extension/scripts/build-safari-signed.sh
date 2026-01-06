@@ -84,10 +84,15 @@ echo "Step 2/$TOTAL_STEPS: Converting to Xcode project..."
 xcrun safari-web-extension-converter build/production/safari/extension \
     --project-location build/production/safari/xcode \
     --app-name 'Stream Keys' \
-    --bundle-identifier com.getstreamkeys.safari \
+    --bundle-identifier com.getstreamkeys.StreamKeys \
     --force \
     --no-prompt \
     --no-open
+
+# Fix bundle identifier (converter ignores our setting and derives from app name)
+echo "Fixing bundle identifiers..."
+PBXPROJ="build/production/safari/xcode/Stream Keys/Stream Keys.xcodeproj/project.pbxproj"
+sed -i '' 's/com\.getstreamkeys\.Stream-Keys/com.getstreamkeys.StreamKeys/g' "$PBXPROJ"
 
 # Step 3: Build with code signing
 echo ""
