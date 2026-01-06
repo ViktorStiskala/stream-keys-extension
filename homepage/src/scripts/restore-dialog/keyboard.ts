@@ -74,23 +74,20 @@ function preventSpaceActivation(e: KeyboardEvent): void {
 }
 
 function initDemoKeys(): void {
-  const keyR = document.getElementById("demo-key-r");
-  const keyS = document.getElementById("demo-key-s");
+  // Find all elements with data-demo-key attribute
+  const keysR = document.querySelectorAll<HTMLElement>('[data-demo-key="r"]');
+  const keysS = document.querySelectorAll<HTMLElement>('[data-demo-key="s"]');
   const resetBtn = document.getElementById("video-reset-btn");
 
-  if (keyR) {
-    keyR.addEventListener("click", () => {
-      toggleDialog();
-    });
-    keyR.addEventListener("keydown", preventSpaceActivation);
-  }
+  keysR.forEach((key) => {
+    key.addEventListener("click", () => toggleDialog());
+    key.addEventListener("keydown", preventSpaceActivation);
+  });
 
-  if (keyS) {
-    keyS.addEventListener("click", () => {
-      saveCurrentPosition();
-    });
-    keyS.addEventListener("keydown", preventSpaceActivation);
-  }
+  keysS.forEach((key) => {
+    key.addEventListener("click", () => saveCurrentPosition());
+    key.addEventListener("keydown", preventSpaceActivation);
+  });
 
   if (resetBtn) {
     resetBtn.addEventListener("keydown", preventSpaceActivation);

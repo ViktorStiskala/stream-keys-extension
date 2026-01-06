@@ -1,0 +1,108 @@
+---
+description: Apply when working on the restore position demo section in the homepage, modifying files in src/scripts/restore-dialog/, working with RestoreDialog.astro component, DemoKey or InlineKey components with action prop, progress bar functionality, or adding new interactive keyboard shortcuts to the demo.
+globs:
+  - homepage/src/scripts/restore-dialog/**
+  - homepage/src/components/RestoreDialog.astro
+  - homepage/src/components/ui/DemoKey.astro
+  - homepage/src/components/ui/InlineKey.astro
+---
+
+# Interactive Demo (Restore Position)
+
+The homepage includes a fully interactive demo of the position restore feature. Located in `src/scripts/restore-dialog/`.
+
+## Required DOM Element IDs
+
+The demo scripts depend on these specific element IDs. Do not rename without updating all references:
+
+**RestoreDialog.astro:**
+- `restore-dialog` - Main dialog container (shown/hidden via opacity)
+- `dialog-close-btn` - Close button in dialog header
+- `dialog-current-time` - Current playback time display
+- `position-list` - Container for dynamically rendered positions
+- `hint-text` - Dialog hint showing key bindings
+- `dialog-closed-hint` - Hint shown when dialog is closed
+
+**index.astro (progress bar section):**
+- `restore` - Section ID used by visibility observer (keyboard shortcuts only work when this section is visible)
+- `video-title`, `video-subtitle` - Random video title display
+- `video-time-remaining` - Remaining time display
+- `video-progress-container` - Progress bar click/drag target
+- `video-progress-fill` - Progress bar fill element
+- `video-progress-scrubber` - Draggable scrubber handle
+- `video-progress-tooltip` - Hover time tooltip
+- `video-reset-btn` - Reset button
+
+## Interactive Key Components
+
+### DemoKey (large clickable keys)
+```astro
+<DemoKey
+  action="r"
+  label="R"
+  description="Toggle Restore Dialog"
+  ariaLabel="Press R to toggle restore dialog"
+/>
+```
+
+### InlineKey (inline text keys)
+```astro
+<!-- Non-interactive (display only) -->
+<InlineKey>R</InlineKey>
+
+<!-- Interactive (clickable) -->
+<InlineKey action="r">R</InlineKey>
+```
+
+**Important:** The `action` prop adds `data-demo-key="{action}"` attribute used by `keyboard.ts` to bind click handlers. Valid actions: `"r"` (toggle dialog), `"s"` (save position).
+
+## Event System
+
+Modules communicate via custom window events to avoid circular dependencies:
+
+```typescript
+// Events defined in events.ts
+EVENTS.TIME_UPDATE     // Progress bar/time display updates
+EVENTS.HISTORY_CHANGE  // Position list changed, triggers re-render
+EVENTS.CLOSE_DIALOG    // Request dialog close (positions.ts → dialog.ts)
+```
+
+**Rule:** Never import `dialog.ts` directly from `positions.ts`. Use `dispatchCloseDialog()` instead.
+
+## Visibility-Gated Keyboard Shortcuts
+
+Keyboard shortcuts (R, S, 0-9, Escape) only work when the `#restore` section is at least 20% visible. This prevents conflicts with other page interactions.
+
+See `visibility.ts` for the IntersectionObserver implementation.
+
+## State Management
+
+All mutable state lives in `state.ts`. Access via getters/setters:
+- `getPositions()`, `addPosition()`, `removePosition()`
+- `getCurrentVideoSeconds()`, `setCurrentVideoSeconds()`
+- `getIsDialogOpen()`, `setIsDialogOpen()`
+- `getUserSavedPosition()`, `setUserSavedPosition()`
+
+## Position Types
+
+```typescript
+interface Position {
+  time: string;           // Formatted "14:32"
+  timeSeconds: number;    // Seconds for progress bar
+  label: string;          // "load time", "30s ago", "saved position"
+  savedAt?: number;       // Timestamp for relative time display
+  isUserSaved?: boolean;  // Green styling, key 1
+  isLoadTime?: boolean;   // Always key 0, has separator after
+}
+```
+
+## Key Assignment Rules
+
+Position keys are assigned dynamically:
+- Key 0: Always load time position
+- Key 1: User saved position (if exists), otherwise first history position
+- Keys 2-3: History positions (max 3 history items)
+
+## Similar Position Detection
+
+When saving to history, positions within 15 seconds of an existing history position are considered duplicates and not added. See `POSITION_THRESHOLD` in `config.ts`.

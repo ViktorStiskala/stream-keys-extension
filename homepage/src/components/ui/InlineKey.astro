@@ -1,15 +1,31 @@
 ---
 interface Props {
   class?: string;
+  action?: string; // e.g., "r" or "s" - makes the key interactive
 }
+
+const { class: className, action } = Astro.props;
+const isInteractive = !!action;
 ---
 
 <kbd
   class:list={[
     "inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 mx-0.5",
     "bg-key-bg border border-key-border rounded",
-    "font-mono font-semibold text-xs text-text align-middle cursor-default",
-    Astro.props.class,
+    "font-mono font-semibold text-xs text-text align-middle",
+    isInteractive ? "cursor-pointer hover:border-accent hover:text-accent-bright transition-all duration-150" : "cursor-default",
+    className,
   ]}
+  data-demo-key={action}
+  tabindex={isInteractive ? 0 : undefined}
+  role={isInteractive ? "button" : undefined}
   style="box-shadow: 0 2px 0 var(--color-key-shadow);"><slot /></kbd
 >
+
+<style>
+  /* Only targets interactive keys since data-demo-key is only added when action prop is provided */
+  kbd[data-demo-key]:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--color-key-shadow);
+  }
+</style>

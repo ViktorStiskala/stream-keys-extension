@@ -1,0 +1,57 @@
+/* Keyboard Key Interactive Animations */
+
+/* Container needs relative positioning for absolute clone */
+.keyboard-key-wrapper {
+  position: relative;
+}
+
+/* Thump animation - fast down, bump, hold briefly, spring back */
+@keyframes key-thump {
+  0% {
+    transform: translateY(0);
+  }
+  15% {
+    transform: translateY(8px);
+  }
+  25% {
+    transform: translateY(6px);
+  }
+  40% {
+    transform: translateY(8px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+  75% {
+    transform: translateY(1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Flying key animation - emerges from center and flies upward with horizontal drift */
+@keyframes key-fly-up {
+  0% {
+    transform: translate(-50%, -30%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--fly-direction, 0) * 80px), -200px) scale(0.25);
+    opacity: 0;
+  }
+}
+
+.keyboard-key--thumping {
+  animation: key-thump 400ms ease-out;
+}
+
+.keyboard-key--flying {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: -1;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: key-fly-up 800ms ease-out forwards;
+}

@@ -1,4 +1,6 @@
 ---
+import "../styles/keyboard-key.css";
+
 interface Props {
   label: string;
   description?: string;
@@ -6,6 +8,7 @@ interface Props {
   animate?: boolean;
   size?: "sm" | "md" | "lg";
   href?: string;
+  interactive?: boolean;
 }
 
 const {
@@ -15,6 +18,7 @@ const {
   animate = false,
   size = "md",
   href,
+  interactive = false,
 } = Astro.props;
 
 const sizeClasses = {
@@ -24,41 +28,46 @@ const sizeClasses = {
 };
 
 const wideClass = wide ? "px-6" : "px-3";
-const cursorClass = href ? "cursor-pointer" : "cursor-default";
+const cursorClass = href || interactive ? "cursor-pointer" : "cursor-default";
 const Tag = href ? "a" : "div";
 ---
 
 <div class="flex flex-col items-center gap-2 select-none">
-  <Tag
-    href={href}
-    class:list={[
-      "keyboard-key",
-      "relative inline-flex items-center justify-center rounded-lg",
-      cursorClass,
-      "bg-gradient-to-b from-key-bg to-[#151520]",
-      "border border-key-border",
-      "font-mono font-semibold text-text no-underline",
-      "transition-all duration-150",
-      "hover:border-accent hover:text-accent-bright",
-      sizeClasses[size],
-      wideClass,
-      animate && "animate-key-press",
-    ]}
-    style="box-shadow: 0 4px 0 var(--color-key-shadow), 0 6px 20px rgba(0, 0, 0, 0.3);"
-  >
-    <span class="relative z-10">{label}</span>
-    <!-- Key shine effect -->
-    <div
-      class="absolute inset-0 rounded-lg bg-gradient-to-b from-white/5 to-transparent pointer-events-none"
+  <div class="keyboard-key-wrapper">
+    <Tag
+      href={href}
+      class:list={[
+        "keyboard-key",
+        "relative inline-flex items-center justify-center rounded-lg",
+        cursorClass,
+        "bg-gradient-to-b from-key-bg to-[#151520]",
+        "border border-key-border",
+        "font-mono font-semibold text-text no-underline",
+        "transition-all duration-150",
+        "hover:border-accent hover:text-accent-bright",
+        sizeClasses[size],
+        wideClass,
+        animate && "animate-key-press",
+      ]}
+      style="box-shadow: 0 4px 0 var(--color-key-shadow), 0 6px 20px rgba(0, 0, 0, 0.3);"
+      data-interactive={interactive ? "" : undefined}
     >
-    </div>
-  </Tag>
+      <span class="relative z-10">{label}</span>
+      <!-- Key shine effect -->
+      <div
+        class="absolute inset-0 rounded-lg bg-gradient-to-b from-white/5 to-transparent pointer-events-none"
+      >
+      </div>
+    </Tag>
+  </div>
   {
     description && (
       <span class="text-sm text-text-muted text-center">{description}</span>
     )
   }
 </div>
+
+{interactive && <script src="../scripts/keyboard-key.ts"></script>}
 
 <style>
   .keyboard-key:hover {
