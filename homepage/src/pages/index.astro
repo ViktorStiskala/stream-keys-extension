@@ -43,6 +43,7 @@ const services = [
       "Space to play/pause",
       "F for fullscreen",
       "C for subtitles",
+      "Custom seek times",
       "Position restore",
     ],
   },
@@ -55,6 +56,7 @@ const services = [
       "F for fullscreen",
       "C for subtitles",
       "Arrow keys to seek",
+      "Custom seek times",
       "Position restore",
     ],
   },
@@ -157,11 +159,17 @@ const shortcuts = [
 
       <!-- Problem statement -->
       <p
+        class="animate-fade-in delay-400 text-text-muted mb-4 max-w-xl mx-auto"
+      >
+        Ever pressed Space to pause and accidentally skipped to the next
+        episode? Or restarted the entire movie? Or hit a button you didn't mean
+        to press?
+      </p>
+      <p
         class="animate-fade-in delay-400 text-text-muted mb-10 max-w-xl mx-auto"
       >
-        Tired of pressing Space and accidentally skipping ahead or triggering
-        random buttons? Stream Keys fixes broken keyboard behavior on streaming
-        sites.
+        Stream Keys fixes these infuriating moments – your keyboard shortcuts
+        finally work the way they should.
       </p>
 
       <!-- CTAs -->
@@ -231,15 +239,30 @@ const shortcuts = [
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-16">
         <h2 class="text-3xl md:text-4xl font-bold mb-4 font-display">
-          Never Lose Your Place — <span class="text-accent">Try the Demo</span>
+          Never Lose Your Spot – <span class="text-accent">Undo for Video</span>
         </h2>
-        <p class="text-text-muted max-w-2xl mx-auto">
+        <p class="text-text-muted max-w-2xl mx-auto mb-8">
           Press <InlineKey class="min-w-[28px] h-7 px-2 mx-1 text-sm"
             >R</InlineKey
           >
           to instantly jump back to where you were. Perfect for when you overshoot
-          a skip, accidentally seek too far, or want to rewatch a scene.
+          a skip, your finger slips on the trackpad, or you want to rewatch that
+          line you didn't quite catch – then return exactly where you were.
         </p>
+        <div
+          class="inline-flex items-center gap-3 px-6 py-4 bg-accent/2 border border-accent/30 rounded-full text-base font-medium text-accent"
+        >
+          <span class="relative flex items-center justify-center">
+            <span
+              class="absolute w-5 h-5 rounded-full border-2 border-red-500/50"
+            ></span>
+            <Icon
+              name="material-symbols:fiber-manual-record"
+              class="w-4 h-4 animate-pulse text-red-500"
+            />
+          </span>
+          Interactive Demo – try pressing the keys.
+        </div>
       </div>
 
       <div class="grid lg:grid-cols-2 gap-12 items-center">
@@ -363,7 +386,7 @@ const shortcuts = [
               id="video-reset-btn"
               class="shrink-0 p-2 rounded-full text-text-muted hover:text-accent hover:bg-surface transition-colors cursor-pointer flex items-center justify-center"
               aria-label="Reset playback"
-              title="Reset to initial position"
+              title="Reset playback"
             >
               <Icon
                 name="system-uicons:reset"
@@ -391,8 +414,9 @@ const shortcuts = [
           Keyboard Shortcuts That <span class="text-accent">Actually Work</span>
         </h2>
         <p class="text-text-muted max-w-2xl mx-auto">
-          Your shortcuts always do what you expect – play, pause, toggle
-          subtitles, or go fullscreen – no matter what's focused on the page.
+          No more surprise skips, no more dead keys after fullscreen, no more
+          hunting for the subtitle menu. Every shortcut does exactly what you
+          expect, every single time.
         </p>
       </div>
 
@@ -418,27 +442,33 @@ const shortcuts = [
         />
         <FeatureCard
           title="Media Keys Support"
-          description="Control playback with your keyboard's media keys. Play/pause and skip forward/backward work out of the box."
+          description="Those play/pause and skip buttons on your keyboard? They actually work on streaming sites now. Rewind or skip forward just like the on-screen buttons – without switching tabs."
           icon="heroicons:play-pause-solid"
         />
         <FeatureCard
-          title="Custom Seek Time"
-          description="Override the default 10-second skip duration. Configure any value from 5 to 120 seconds in the settings."
+          title="Custom Skip Time"
+          description="Hate waiting through 10-second skips during boring scenes? Set your own skip time – 30 seconds, 60 seconds, whatever works for you. Skip intros and recaps in one press."
           icon="material-symbols:timer-play"
         />
         <FeatureCard
-          title="Smart Subtitles"
-          description="Press C to toggle subtitles. The extension remembers your preferred languages and picks the best match."
+          title="One-Key Subtitle Toggle"
           icon="material-symbols:closed-caption-rounded"
-        />
+        >
+          <p class="text-sm text-text-muted leading-relaxed">
+            No more hunting through menus to turn captions on or off. Press <InlineKey
+              >C</InlineKey
+            > to get your preferred language instantly – or turn them off just as
+            fast. Set your language preferences in the extension settings.
+          </p>
+        </FeatureCard>
         <FeatureCard
           title="Privacy First"
-          description="No tracking, no analytics, no external requests. Your viewing habits stay private. Completely open source."
+          description="Zero tracking, zero data collection. Your viewing habits are yours alone. No analytics, no data mining. Open source code you can inspect yourself. Just keyboard shortcuts."
           icon="material-symbols:shield-lock-rounded"
         />
         <FeatureCard
-          title="Lightweight"
-          description="Minimal footprint with zero impact on page performance. Only activates on supported streaming sites."
+          title="Blazingly Fast"
+          description="You won't even notice it's there – no slowdowns, no popups, no interference. Only activates on streaming sites, sleeps everywhere else."
           icon="material-symbols:rocket-launch-rounded"
         />
       </div>
@@ -454,7 +484,7 @@ const shortcuts = [
         </h2>
         <p class="text-text-muted max-w-2xl mx-auto">
           Stream Keys works with major streaming platforms. Each service can be
-          individually enabled or disabled.
+          individually enabled or disabled in the extension settings.
         </p>
       </div>
 
@@ -483,8 +513,8 @@ const shortcuts = [
         Get Stream Keys
       </h2>
       <p class="text-text-muted mb-12 max-w-xl mx-auto">
-        Install the extension for your browser and start using keyboard
-        shortcuts that actually work.
+        Install in one click and say goodbye to broken keyboard controls. Free
+        forever, works on all major browsers.
       </p>
 
       <!-- Browser options -->
@@ -555,7 +585,7 @@ const shortcuts = [
         </div>
 
         <p class="text-sm text-text-subtle md:flex-1 md:text-right">
-          No tracking. No ads. Just keyboard shortcuts.
+          Zero tracking. Zero ads. Just keyboard shortcuts.
         </p>
       </div>
     </div>
