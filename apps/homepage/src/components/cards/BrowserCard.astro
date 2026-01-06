@@ -1,0 +1,19 @@
+---
+import { Icon } from "astro-icon/components";
+import Card from "../primitives/Card.astro";
+
+interface Props {
+  name: string;
+  icon: string;
+  href: string;
+  label?: string;
+}
+
+const { name, icon, href, label = "Download" } = Astro.props;
+---
+
+<Card as="a" href={href} interactive>
+  <Icon name={icon} class="mx-auto mb-4 h-16 w-16" />
+  <h3 class="mb-2 font-semibold">{name}</h3>
+  <p class="text-sm text-text-muted">{label}</p>
+</Card>

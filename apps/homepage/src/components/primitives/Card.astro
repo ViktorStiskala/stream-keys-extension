@@ -1,0 +1,32 @@
+---
+import { card, type CardVariants } from "../../styles/variants/card";
+
+interface Props extends CardVariants {
+  as?: "div" | "a";
+  href?: string;
+  class?: string;
+}
+
+const {
+  as = "div",
+  href,
+  class: className,
+  padding,
+  radius,
+  interactive,
+  elevated,
+} = Astro.props;
+
+const Tag = as === "a" ? "a" : "div";
+const styles = card({ padding, radius, interactive, elevated });
+---
+
+<Tag
+  href={as === "a" ? href : undefined}
+  class:list={[styles.root(), className]}
+>
+  {elevated && <div class={styles.glow()} />}
+  <div class={styles.content()}>
+    <slot />
+  </div>
+</Tag>

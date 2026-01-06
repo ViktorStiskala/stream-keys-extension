@@ -1,0 +1,39 @@
+---
+description: Build commands and development workflow for the StreamKeys browser extension. Apply this rule when running npm scripts (dev, build, typecheck, lint, format), creating development or production builds, targeting different browsers (Chrome, Firefox), configuring the BROWSER environment variable, troubleshooting build output directories (build/dev/, build/production/), or dealing with multi-browser compilation issues. Relevant keywords: npm run dev, npm run build, vite, webpack, bundle, compile, production, development mode.
+globs:
+  - "vite.config.ts"
+  - "package.json"
+  - "tsconfig.json"
+alwaysApply: false
+---
+
+# Build Commands
+
+## Development
+
+- `npm run dev` - Watch mode for development (Chrome by default)
+- `BROWSER=firefox npm run dev` - Firefox dev mode
+
+## Production
+
+- `npm run build` - Production build (Chrome by default)
+- `npm run build:firefox` - Firefox build
+
+## Code Quality
+
+- `npm run typecheck` - Type checking without emit
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Run ESLint with auto-fix
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check formatting without changes
+- `npm run check` - Run all checks (typecheck + lint + format)
+
+## Multi-Browser Builds
+
+Set `BROWSER` environment variable to target different browsers:
+- `chrome` (default) - Chromium-based browsers (Chrome, Edge, Brave)
+- `firefox` - Firefox desktop
+
+Output directories:
+- Dev: `build/dev/{browser}/extension`
+- Prod: `build/production/{browser}/extension`

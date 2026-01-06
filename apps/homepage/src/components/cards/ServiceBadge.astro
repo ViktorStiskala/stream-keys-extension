@@ -1,0 +1,53 @@
+---
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  name: string;
+  color: string;
+  icon: string;
+  features: string[];
+}
+
+const { name, color, icon, features } = Astro.props;
+---
+
+<div
+  class="service-badge rounded-xl border border-border bg-bg-card p-5 transition-all duration-300"
+  style={`--service-color: ${color};`}
+>
+  <div class="mb-4 flex items-center gap-3">
+    <Icon name={icon} class="h-6 w-6" />
+    <h3 class="font-semibold text-text">{name}</h3>
+  </div>
+
+  <ul class="space-y-2">
+    {
+      features.map((feature) => (
+        <li class="flex items-center gap-2 text-sm text-text-muted">
+          <svg
+            class="h-4 w-4 text-accent"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          {feature}
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style>
+  .service-badge:hover {
+    border-color: var(--service-color);
+    box-shadow: 0 0 30px
+      color-mix(in srgb, var(--service-color) 20%, transparent);
+  }
+</style>

@@ -1,0 +1,585 @@
+---
+import Layout from "../layouts/Layout.astro";
+import KeyboardKey from "../components/keyboard/KeyboardKey.astro";
+import FeatureCard from "../components/cards/FeatureCard.astro";
+import ServiceBadge from "../components/cards/ServiceBadge.astro";
+import RestoreDialog from "../components/RestoreDialog.astro";
+import InlineKey from "../components/keyboard/InlineKey.astro";
+import CheckItem from "../components/CheckItem.astro";
+import BrowserCard from "../components/cards/BrowserCard.astro";
+import DemoKey from "../components/keyboard/DemoKey.astro";
+import Button from "../components/primitives/Button.astro";
+import { Icon } from "astro-icon/components";
+
+const links = {
+  chromeWebStore:
+    "https://chromewebstore.google.com/detail/stream-keys-video-keyboar/opmlgkagmnkphbhagemjiconiencmpgd?hl=en",
+  firefoxAddons:
+    "https://addons.mozilla.org/en-US/firefox/addon/stream-keys-video-controls/",
+  githubReleases:
+    "https://github.com/ViktorStiskala/chrome-stream-keys/releases/latest",
+  githubRepo: "https://github.com/ViktorStiskala/chrome-stream-keys",
+  githubLicense:
+    "https://github.com/ViktorStiskala/chrome-stream-keys/blob/main/LICENSE",
+};
+
+const services = [
+  {
+    name: "Disney+",
+    color: "#113ccf",
+    icon: "streamline-logos:disney-plus-logo-block",
+    features: [
+      "Space to play/pause",
+      "F for fullscreen",
+      "C for subtitles",
+      "Arrow keys to seek",
+      "Position restore",
+    ],
+  },
+  {
+    name: "HBO Max",
+    color: "#b103fc",
+    icon: "streamline-logos:hbo-max-logo-block",
+    features: [
+      "Space to play/pause",
+      "F for fullscreen",
+      "C for subtitles",
+      "Custom seek times",
+      "Position restore",
+    ],
+  },
+  {
+    name: "BBC iPlayer",
+    color: "#ff4d4d",
+    icon: "streamline-logos:bbc-iplayer-logo-1-block",
+    features: [
+      "Space to play/pause",
+      "F for fullscreen",
+      "C for subtitles",
+      "Arrow keys to seek",
+      "Custom seek times",
+      "Position restore",
+    ],
+  },
+  {
+    name: "YouTube",
+    color: "#ff0000",
+    icon: "streamline-logos:youtube-clip-logo-solid",
+    features: [
+      "Position restore",
+      "Save positions with S",
+      "Native shortcuts preserved",
+    ],
+  },
+];
+
+const shortcuts = [
+  {
+    key: "Space",
+    label: "Play / Pause",
+    description: "Toggle playback anywhere, regardless of focus",
+  },
+  {
+    key: "F",
+    label: "Fullscreen",
+    description: "Enter or exit fullscreen mode",
+  },
+  {
+    key: "C",
+    label: "Subtitles",
+    description: "Toggle captions based on your preferences",
+  },
+  {
+    key: "R",
+    label: "Restore",
+    description: "Jump back to previous positions",
+  },
+  { key: "S", label: "Save", description: "Bookmark your current position" },
+  { key: "←/→", label: "Seek", description: "Rewind or fast-forward" },
+];
+---
+
+<Layout title="Stream Keys Browser Extension – Video Keyboard Controls">
+  <!-- Hero Section -->
+  <section
+    class="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-20"
+  >
+    <!-- Background decoration -->
+    <div
+      class="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-accent/10 blur-3xl"
+    >
+    </div>
+    <div
+      class="absolute right-1/4 bottom-1/4 h-72 w-72 rounded-full bg-gold/10 blur-3xl"
+    >
+    </div>
+
+    <div class="relative z-10 mx-auto max-w-4xl text-center">
+      <!-- Logo -->
+      <div class="animate-fade-in mb-8 shadow-md">
+        <img
+          src="/images/icon.svg"
+          alt="Stream Keys"
+          class="mx-auto mb-6 h-32 w-32 drop-shadow-2xl"
+        />
+      </div>
+
+      <!-- Title -->
+      <h1
+        class="animate-fade-in mb-6 font-display text-5xl font-bold tracking-tight delay-100 md:text-7xl"
+      >
+        <span class="gradient-text">Stream Keys</span>
+      </h1>
+
+      <!-- Tagline -->
+      <p
+        class="animate-fade-in mx-auto mb-2 max-w-2xl text-xl leading-relaxed text-text-muted delay-200 md:text-2xl"
+      >
+        YouTube-style keyboard shortcuts for streaming services
+      </p>
+      <p
+        class="animate-fade-in mx-auto mb-8 max-w-2xl text-base text-text-subtle delay-200"
+      >
+        A free browser extension for Chrome, Firefox, Safari, and Edge
+      </p>
+
+      <!-- Key highlights -->
+      <div
+        class="animate-fade-in mb-12 flex flex-wrap justify-center gap-4 delay-300"
+      >
+        <KeyboardKey
+          label="Space"
+          description="Play/Pause"
+          animate
+          href="#restore"
+        />
+        <KeyboardKey label="F" description="Fullscreen" href="#restore" />
+        <KeyboardKey label="C" description="Subtitles" href="#restore" />
+        <KeyboardKey label="R" description="Restore" href="#restore" />
+      </div>
+
+      <!-- Problem statement -->
+      <p
+        class="animate-fade-in mx-auto mb-4 max-w-xl text-text-muted delay-400"
+      >
+        Ever pressed Space to pause and accidentally skipped to the next
+        episode? Or restarted the entire movie? Or hit a button you didn't mean
+        to press?
+      </p>
+      <p
+        class="animate-fade-in mx-auto mb-10 max-w-xl text-text-muted delay-400"
+      >
+        Stream Keys fixes these infuriating moments – your keyboard shortcuts
+        finally work the way they should.
+      </p>
+
+      <!-- CTAs -->
+      <div
+        class="animate-fade-in flex flex-wrap justify-center gap-4 delay-500"
+      >
+        <Button as="a" href="#install" variant="primary">
+          <Icon name="material-symbols:download-rounded" class="h-5 w-5" />
+          Download
+        </Button>
+        <Button as="a" href="#restore" variant="secondary">
+          Learn More
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </Button>
+      </div>
+
+      <!-- Browser badges -->
+      <div
+        class="animate-fade-in mt-8 flex items-center justify-center gap-6 delay-600"
+      >
+        <Icon name="logos:chrome" class="h-6 w-6" title="Chrome" />
+        <Icon name="logos:firefox" class="h-6 w-6" title="Firefox" />
+        <Icon name="logos:safari" class="h-6 w-6" title="Safari" />
+        <Icon name="logos:microsoft-edge" class="h-6 w-6" title="Edge" />
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+      <svg
+        class="h-6 w-6 text-text-subtle"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Interactive Demo Section -->
+  <section
+    id="restore"
+    class="bg-linear-to-b from-transparent via-bg-elevated/50 to-transparent px-8 py-24"
+  >
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-16 text-center">
+        <h2 class="mb-4 font-display text-3xl font-bold md:text-4xl">
+          Never Lose Your Spot – <span class="text-accent">Undo for Video</span>
+        </h2>
+        <p class="mx-auto mb-8 max-w-2xl text-text-muted">
+          Press <InlineKey class="mx-1 h-7 min-w-[28px] px-2 text-sm"
+            >R</InlineKey
+          >
+          to instantly jump back to where you were. Perfect for when you overshoot
+          a skip, your finger slips on the trackpad, or you want to rewatch that line
+          you didn't quite catch – then return exactly where you were.
+        </p>
+        <div
+          class="inline-flex items-center gap-3 rounded-full border border-accent/30 bg-accent/2 px-6 py-4 text-base font-medium text-accent"
+        >
+          <span class="relative flex items-center justify-center">
+            <span
+              class="absolute h-5 w-5 rounded-full border-2 border-red-500/50"
+            ></span>
+            <Icon
+              name="material-symbols:fiber-manual-record"
+              class="h-4 w-4 animate-pulse text-red-500"
+            />
+          </span>
+          Interactive Demo – try pressing the keys.
+        </div>
+      </div>
+
+      <div class="grid items-center gap-12 lg:grid-cols-2">
+        <div
+          class="mx-auto max-w-xl text-center lg:mx-0 lg:max-w-none lg:text-left"
+        >
+          <!-- Keyboard Shortcuts -->
+          <h3
+            class="mb-6 text-base font-semibold tracking-wider text-text-muted uppercase"
+          >
+            Keyboard Shortcuts
+          </h3>
+          <div
+            class="mb-6 flex flex-wrap justify-center gap-6 lg:justify-start"
+          >
+            <DemoKey
+              action="r"
+              label="R"
+              description="Toggle Restore Dialog"
+              ariaLabel="Press R to toggle restore dialog"
+            />
+            <DemoKey
+              action="s"
+              label="S"
+              description="Save Current Position"
+              ariaLabel="Press S to save current position"
+            />
+          </div>
+          <p class="mb-8 text-left text-sm text-text-muted">
+            Seek anywhere in the video – previous position saves automatically.
+            Changed your mind? Press <InlineKey>R</InlineKey> to open position restore
+            dialog, and instantly jump back.
+          </p>
+
+          <!-- Supported Features -->
+          <h3
+            class="mb-6 text-base font-semibold tracking-wider text-text-muted uppercase"
+          >
+            Supported Features
+          </h3>
+          <ul class="mb-8 inline-block space-y-4 text-left">
+            <CheckItem>
+              Saves load position when the video restores to last known position
+            </CheckItem>
+            <CheckItem>
+              Manually saved positions (press <InlineKey>S</InlineKey> to bookmark)
+            </CheckItem>
+            <CheckItem
+              >Up to 3 recent positions from before you seeked</CheckItem
+            >
+            <CheckItem>
+              One-key access – press <InlineKey>0</InlineKey>–<InlineKey
+                >4</InlineKey
+              > to jump directly
+            </CheckItem>
+          </ul>
+
+          <p class="text-left text-sm text-text-subtle italic">
+            It's like undo for video navigation.
+          </p>
+        </div>
+
+        <div class="flex justify-center lg:justify-start lg:pl-8">
+          <RestoreDialog />
+        </div>
+      </div>
+
+      <!-- Fake Video Progress Bar -->
+      <div class="mx-auto mt-5 max-w-4xl">
+        <div class="rounded-xl border border-border/50 bg-bg-card/80 p-4">
+          <!-- Video info bar -->
+          <div class="mb-3 flex items-center justify-between text-base">
+            <div>
+              <div id="video-title" class="font-semibold text-text">
+                Stream Keys Extension
+              </div>
+              <div id="video-subtitle" class="text-sm text-text-muted">
+                S1 E1: The Beginning
+              </div>
+            </div>
+            <span
+              id="video-time-remaining"
+              class="font-mono text-sm text-text tabular-nums">-1:15:28</span
+            >
+          </div>
+
+          <!-- Progress bar with reset button -->
+          <div class="flex items-center gap-3">
+            <div
+              id="video-progress-container"
+              class="group relative h-2 flex-1 cursor-pointer rounded-full bg-white/10"
+            >
+              <!-- Progress fill -->
+              <div
+                id="video-progress-fill"
+                class="absolute top-0 left-0 h-full rounded-full bg-white/80 transition-[width] duration-100"
+                style="width: 16.1%"
+              >
+              </div>
+
+              <!-- Scrubber -->
+              <div
+                id="video-progress-scrubber"
+                class="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+                style="left: 16.1%"
+              >
+              </div>
+
+              <!-- Hover tooltip -->
+              <div
+                id="video-progress-tooltip"
+                class="pointer-events-none absolute -top-10 -translate-x-1/2 rounded bg-black/90 px-2 py-1 font-mono text-xs whitespace-nowrap text-white opacity-0 transition-opacity"
+                style="left: 50%"
+              >
+                45:00
+              </div>
+            </div>
+
+            <!-- Reset button -->
+            <button
+              id="video-reset-btn"
+              class="flex shrink-0 cursor-pointer items-center justify-center rounded-full p-2 text-text-muted transition-colors hover:bg-surface hover:text-accent"
+              aria-label="Reset playback"
+              title="Reset playback"
+            >
+              <Icon
+                name="system-uicons:reset"
+                class="h-5 w-5"
+                stroke-width="2"
+              />
+            </button>
+          </div>
+
+          <!-- Instructions -->
+          <div class="mt-3 text-center text-xs text-text-subtle">
+            Click or drag the progress bar to seek • Your pre-seek position will
+            be saved to history
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="px-4 py-24">
+    <div class="mx-auto max-w-6xl">
+      <div class="relative z-10 mb-16 text-center">
+        <h2 class="mb-4 font-display text-3xl font-bold md:text-4xl">
+          Keyboard Shortcuts That <span class="text-accent">Actually Work</span>
+        </h2>
+        <p class="mx-auto max-w-2xl text-text-muted">
+          No more surprise skips, no more dead keys after fullscreen, no more
+          hunting for the subtitle menu. Every shortcut does exactly what you
+          expect, every single time.
+        </p>
+      </div>
+
+      <!-- Shortcuts grid -->
+      <div class="mb-20 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
+        {
+          shortcuts.map((shortcut, i) => (
+            <div class={`animate-fade-in delay-${(i + 1) * 100} text-center`}>
+              <KeyboardKey label={shortcut.key} size="lg" interactive />
+              <h4 class="mt-3 font-semibold text-text">{shortcut.label}</h4>
+              <p class="mt-1 text-xs text-text-muted">{shortcut.description}</p>
+            </div>
+          ))
+        }
+      </div>
+
+      <!-- Feature cards -->
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <FeatureCard
+          title="Works in Fullscreen"
+          description="All shortcuts work reliably in fullscreen mode, including after you exit fullscreen. No more clicking to regain focus."
+          icon="tabler:arrows-maximize"
+        />
+        <FeatureCard
+          title="Media Keys Support"
+          description="Those play/pause and skip buttons on your keyboard? They actually work on streaming sites now. Rewind or skip forward just like the on-screen buttons – without switching tabs."
+          icon="heroicons:play-pause-solid"
+        />
+        <FeatureCard
+          title="Custom Skip Time"
+          description="Hate waiting through 10-second skips during boring scenes? Set your own skip time – 30 seconds, 60 seconds, whatever works for you. Skip intros and recaps in one press."
+          icon="material-symbols:timer-play"
+        />
+        <FeatureCard
+          title="One-Key Subtitle Toggle"
+          icon="material-symbols:closed-caption-rounded"
+        >
+          <p class="text-sm leading-relaxed text-text-muted">
+            No more hunting through menus to turn captions on or off. Press <InlineKey
+              >C</InlineKey
+            > to get your preferred language instantly – or turn them off just as
+            fast. Set your language preferences in the extension settings.
+          </p>
+        </FeatureCard>
+        <FeatureCard
+          title="Privacy First"
+          description="Zero tracking, zero data collection. Your viewing habits are yours alone. No analytics, no data mining. Open source code you can inspect yourself. Just keyboard shortcuts."
+          icon="material-symbols:shield-lock-rounded"
+        />
+        <FeatureCard
+          title="Blazingly Fast"
+          description="You won't even notice it's there – no slowdowns, no popups, no interference. Only activates on streaming sites, sleeps everywhere else."
+          icon="material-symbols:rocket-launch-rounded"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- Supported Services Section -->
+  <section id="services" class="px-4 py-24">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-16 text-center">
+        <h2 class="mb-4 font-display text-3xl font-bold md:text-4xl">
+          Supported Services
+        </h2>
+        <p class="mx-auto max-w-2xl text-text-muted">
+          Stream Keys works with major streaming platforms. Each service can be
+          individually enabled or disabled in the extension settings.
+        </p>
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          services.map((service) => (
+            <ServiceBadge
+              name={service.name}
+              color={service.color}
+              icon={service.icon}
+              features={service.features}
+            />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Installation Section -->
+  <section
+    id="install"
+    class="bg-gradient-to-b from-transparent via-bg-elevated/50 to-transparent px-4 py-24"
+  >
+    <div class="mx-auto max-w-4xl text-center">
+      <h2 class="mb-4 font-display text-3xl font-bold md:text-4xl">
+        Get Stream Keys
+      </h2>
+      <p class="mx-auto mb-12 max-w-xl text-text-muted">
+        Install in one click and say goodbye to broken keyboard controls. Free
+        forever, works on all major browsers.
+      </p>
+
+      <!-- Browser options -->
+      <div class="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <BrowserCard
+          name="Chrome"
+          icon="logos:chrome"
+          href={links.chromeWebStore}
+          label="Chrome Web Store"
+        />
+        <BrowserCard
+          name="Firefox"
+          icon="logos:firefox"
+          href={links.firefoxAddons}
+          label="Firefox Add-ons"
+        />
+        <BrowserCard
+          name="Safari"
+          icon="logos:safari"
+          href={links.githubReleases}
+          label="Download DMG"
+        />
+        <BrowserCard
+          name="Edge"
+          icon="logos:microsoft-edge"
+          href={links.githubReleases}
+          label="Download ZIP"
+        />
+      </div>
+
+      <!-- GitHub download -->
+      <div class="mb-12 flex justify-center">
+        <Button as="a" href={links.githubReleases} variant="secondary">
+          <Icon name="streamline-logos:github-logo-2-solid" class="h-5 w-5" />
+          Download from GitHub
+        </Button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-border px-4 py-12">
+    <div class="mx-auto max-w-6xl">
+      <div class="flex flex-col items-center justify-between gap-6 md:flex-row">
+        <div class="flex items-center gap-3 md:flex-1">
+          <img src="/images/icon.svg" alt="Stream Keys" class="h-8 w-8" />
+          <span class="font-semibold">Stream Keys</span>
+        </div>
+
+        <div class="flex items-center gap-6 text-sm text-text-muted">
+          <a
+            href={links.githubRepo}
+            class="inline-flex items-center gap-1.5 transition-colors hover:text-text"
+          >
+            <Icon name="streamline-logos:github-logo-2-solid" class="h-4 w-4" />
+            GitHub
+          </a>
+          <a
+            href={links.githubLicense}
+            class="inline-flex items-center gap-1.5 transition-colors hover:text-text"
+          >
+            <Icon name="material-symbols:license-rounded" class="h-4 w-4" />
+            MIT License
+          </a>
+        </div>
+
+        <p class="text-sm text-text-subtle md:flex-1 md:text-right">
+          Zero tracking. Zero ads. Just keyboard shortcuts.
+        </p>
+      </div>
+    </div>
+  </footer>
+</Layout>

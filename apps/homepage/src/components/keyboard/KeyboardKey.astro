@@ -1,0 +1,34 @@
+---
+import Key from "../primitives/Key.astro";
+
+interface Props {
+  label: string;
+  description?: string;
+  wide?: boolean;
+  animate?: boolean;
+  size?: "sm" | "md" | "lg";
+  href?: string;
+  interactive?: boolean;
+}
+
+const {
+  label,
+  description,
+  wide = false,
+  animate = false,
+  size = "md",
+  href,
+  interactive = false,
+} = Astro.props;
+---
+
+<Key
+  label={label}
+  description={description}
+  size={size}
+  wide={wide}
+  animate={animate}
+  href={href}
+  interactive={interactive || !!href}
+  clickEffect={interactive}
+/>

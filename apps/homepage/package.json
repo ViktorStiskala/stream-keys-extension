@@ -1,0 +1,49 @@
+{
+  "name": "stream-keys-homepage",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check && tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "lint:classes": "! grep -rn --include='*.astro' --include='*.ts' -E '(flex-shrink|flex-grow|overflow-ellipsis|overflow-clip)' src || (echo 'Error: Use canonical class names (shrink, grow, text-ellipsis, text-clip)' && exit 1)",
+    "format": "prettier --write \"src/**/*.{ts,astro,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,astro,css}\"",
+    "check": "npm run typecheck && npm run lint && npm run lint:classes && npm run format:check",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.5.1",
+    "@iconify-json/logos": "^1.2.10",
+    "astro": "^5.9.3",
+    "astro-icon": "^1.1.5",
+    "tailwind-merge": "^3.4.0",
+    "tailwind-variants": "^3.2.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.6",
+    "@eslint/js": "^9.39.2",
+    "@hyoban/eslint-plugin-tailwindcss": "^4.0.0-alpha.13",
+    "@iconify-json/heroicons": "^1.2.3",
+    "@iconify-json/material-symbols": "^1.2.50",
+    "@iconify-json/streamline-logos": "^1.2.0",
+    "@iconify-json/system-uicons": "^1.2.4",
+    "@iconify-json/tabler": "^1.2.26",
+    "@tailwindcss/node": "^4.1.18",
+    "@tailwindcss/vite": "^4.1.8",
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-astro": "^1.5.0",
+    "eslint-plugin-tailwind-canonical-classes": "^1.1.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-astro": "^0.14.1",
+    "tailwindcss": "^4.1.8",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.52.0"
+  }
+}

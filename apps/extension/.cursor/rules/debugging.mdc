@@ -1,0 +1,115 @@
+---
+description: Debug logging system and console forwarding for StreamKeys extension development. Apply this rule when debugging runtime issues, tracing execution flow, reading .cursor/debug.log output, working with the Debug module (src/core/debug.ts), adding or reviewing console.log/console.warn/console.error statements, or troubleshooting timing and state problems. Essential when: user reports browser runtime issues, adding Debug.log/Debug.action/Debug.event calls, implementing Debug.initConsoleForward() in service handlers, wrapping code in if (__DEV__) blocks, or understanding why console output isn't appearing. Relevant keywords: debug, logging, console, trace, runtime error, dev server, __DEV__.
+globs:
+  - "**/debug.ts"
+  - "**/core/debug*"
+alwaysApply: false
+---
+
+# Debug Logging
+
+## Accessing Debug Logs (For AI/Cursor Debugging)
+
+**When debugging issues with the extension running in dev mode (`npm run dev`), read the debug log file:**
+
+```
+.cursor/debug.log
+```
+
+This file contains all `console.log/warn/error` output from the extension running in the browser. It's automatically updated in real-time when dev mode is active.
+
+**Use this when:**
+- User reports runtime behavior issues
+- Need to trace execution flow
+- Debugging timing or state issues
+- Checking if code paths are being executed
+
+**Interactive debugging workflow:**
+1. Ask user to run `npm run dev` (or `npm run dev:firefox`)
+2. Ask user to reproduce the issue (e.g., "seek to a position, then rapidly click forward")
+3. Ask user to confirm when done
+4. Read `.cursor/debug.log` to see the execution trace and identify the issue
+
+**Example log output:**
+```
+[StreamKeys] HBO Max extension loaded at 2025-12-11T01:37:39.848Z
+[StreamKeys] Video seek listener added
+[StreamKeys] Load time position captured: 52:46
+[StreamKeys] Ready to track seeks
+[StreamKeys] Seek position saved: 55:08
+```
+
+## Console Forwarding for Dev Mode
+
+**All service handlers in `src/services/` MUST initialize console forwarding at the top of the file:**
+
+Initialize console forwarding in dev mode - call `Debug.initConsoleForward()` inside `if (__DEV__)` block.
+
+See `.cursor/rules/scripts/debugging/console-forwarding.ts` for the template.
+
+This forwards all `console.log/warn/error` from the page context to the Vite dev server, which writes them to `.cursor/debug.log`. Without this, browser console logs won't appear in the debug log file.
+
+**Why each service needs this:** Service handlers run in the MAIN world of the page (not the service worker), so each service needs to initialize its own console forwarding.
+
+## Debug Module Architecture
+
+The Debug module uses **compile-time alias swapping** for complete dead code elimination:
+
+- `src/core/debug.ts` - Full implementation (only bundled in dev)
+- `src/core/debug.stub.ts` - No-op exports (bundled in production)
+
+The swap is configured in `vite.config.ts`:
+
+```typescript
+resolve: {
+  alias: {
+    '@/core/debug': resolve(
+      __dirname,
+      isDebugMode ? 'src/core/debug.ts' : 'src/core/debug.stub.ts'
+    ),
+  },
+},
+```
+
+This ensures:
+- **Complete dead code elimination** - the entire implementation file is never bundled in production
+- **No debug strings in production** - strings like 'Debug.log', 'DEV_SERVER_URL' never appear
+- **Safe to import** - importing `@/core/debug` resolves to no-ops in production
+- **No runtime conditional** - the swap happens at build time, not runtime
+
+## Debug API
+
+- `Debug.log(...)` - Logs with `[StreamKeys]` prefix and forwards to dev server
+- `Debug.action(name, details?)` - Logs user actions (key presses, button clicks)
+- `Debug.event(eventName, details, context?)` - Logs browser events with field extraction
+- `Debug.initConsoleForward()` - Patches console.log/warn/error to forward to dev server
+- `Debug.withDebug(eventName, handler)` - Wraps event handler with automatic logging
+
+## Best Practice: Wrap Debug Calls in `if (__DEV__)`
+
+**Even though Debug is a no-op in production, wrapping calls in `if (__DEV__)` is still recommended:**
+
+Shows recommended `if (__DEV__)` wrapping pattern vs direct calls, and when to avoid argument evaluation.
+
+See `.cursor/rules/scripts/debugging/debug-usage.ts` for the template.
+
+**Why wrap even with no-op stubs?**
+1. **Argument evaluation** - `Debug.log(expensiveComputation())` still evaluates the argument
+2. **Cleaner bundles** - The entire call is removed, not just executed as no-op
+3. **Consistency** - Clear signal that this code is dev-only
+
+**When wrapping is essential:**
+- When arguments involve computation: `Debug.log(JSON.stringify(state))`
+- When calling multiple debug methods in sequence
+- In hot paths where even no-op function calls add overhead
+
+**When wrapping is optional:**
+- Simple string literals: `Debug.log('Initialized')` (minimal overhead as no-op)
+- When the stub pattern is preferred for cleaner code
+
+## Logging Convention
+
+- `console.info('[StreamKeys] ...')` - Extension loaded messages (appears in production)
+- `console.warn('[StreamKeys] ...')` - Button not found or other recoverable issues
+- `Debug.log(...)` - Dev-only detailed logging (removed in production)
+- `Debug.action(...)` - Dev-only user action tracking

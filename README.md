@@ -138,10 +138,22 @@ Control playback with keyboard media keys and customize skip duration.
 
 ## For Developers
 
+This repository is organized as a monorepo with two applications:
+
+```
+stream-keys/
+├── apps/
+│   ├── extension/    # Browser extension (Chrome, Firefox, Safari)
+│   └── homepage/     # Marketing website (Astro + Tailwind)
+├── assets/           # Shared marketing assets
+└── .github/          # CI/CD workflows
+```
+
 <details>
-<summary>Building from source</summary>
+<summary>Building the extension</summary>
 
 ```bash
+cd apps/extension
 npm install   # Install dependencies
 npm run build # Production build to build/production/chrome/extension/
 npm run dev   # Watch mode for development (build/dev/chrome/extension/)
@@ -153,6 +165,20 @@ npm run dev   # Watch mode for development (build/dev/chrome/extension/)
 - `npm run test:watch` - Run tests in watch mode
 
 **Architecture:** Built with TypeScript and Vite. Service-specific handlers in `src/services/`, composable features in `src/features/`, core utilities in `src/core/`.
+
+</details>
+
+<details>
+<summary>Building the homepage</summary>
+
+```bash
+cd apps/homepage
+npm install      # Install dependencies
+npm run build    # Production build to dist/
+npm run dev      # Development server at http://localhost:4321
+```
+
+**Tech stack:** Astro, Tailwind CSS v4, TypeScript. Deployed to Cloudflare Pages.
 
 </details>
 

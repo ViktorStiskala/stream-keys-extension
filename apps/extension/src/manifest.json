@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Stream Keys - Video Keyboard Controls",
+  "description": "Keyboard shortcuts and position restore for YouTube, Disney+, HBO Max, and BBC iPlayer video players.",
+  "version": "0.0.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "stream-keys-extension@stiskala.cz",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "icons": {
+    "16": "logo/StreamKeys_16.png",
+    "32": "logo/StreamKeys_32.png",
+    "48": "logo/StreamKeys_48.png",
+    "128": "logo/StreamKeys_128.png"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts"
+  },
+  "permissions": ["webNavigation", "scripting", "storage"],
+  "host_permissions": [
+    "https://*.disneyplus.com/*",
+    "https://*.hbomax.com/*",
+    "https://*.youtube.com/*",
+    "https://*.bbc.co.uk/*"
+  ],
+  "options_page": "src/settings/settings.html",
+  "action": {},
+  "content_scripts": [
+    {
+      "matches": ["https://*.bbc.co.uk/*"],
+      "js": ["src/shadow-patcher.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/services/*.js"],
+      "matches": [
+        "https://*.disneyplus.com/*",
+        "https://*.hbomax.com/*",
+        "https://*.youtube.com/*",
+        "https://*.bbc.co.uk/*"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+---
+// Visual demo of the position restore dialog - matches real dialog structure from dialog.ts
+// Uses external TypeScript for live time updates, keyboard shortcuts, and interactivity
+import InlineKey from "./keyboard/InlineKey.astro";
+---
+
+<div
+  class="restore-dialog-demo relative flex min-h-[540px] w-full max-w-md items-center justify-center select-none"
+>
+  <!-- Dialog container (can be hidden/shown) -->
+  <div
+    id="restore-dialog"
+    class="w-full rounded-2xl border border-border bg-bg-card p-6 shadow-2xl transition-opacity duration-200"
+  >
+    <!-- Header -->
+    <div class="mb-4 flex items-center justify-between">
+      <span class="text-xl font-semibold text-text">Restore Position</span>
+      <button
+        id="dialog-close-btn"
+        class="cursor-pointer text-2xl leading-none text-text-muted transition-colors hover:text-text"
+        aria-label="Close dialog"
+      >
+        ×
+      </button>
+    </div>
+
+    <!-- Current time container -->
+    <div
+      class="mb-2 flex items-center justify-between rounded-lg border border-border bg-white/5 px-4 py-3"
+    >
+      <span class="text-sm text-text-muted">Current time</span>
+      <span
+        id="dialog-current-time"
+        class="font-mono text-base font-semibold text-text tabular-nums"
+        >14:32</span
+      >
+    </div>
+
+    <!-- Position list (rendered dynamically by script) -->
+    <div id="position-list" class="flex flex-col gap-2">
+      <!-- Positions will be rendered by restore-dialog/index.ts -->
+    </div>
+
+    <!-- Hint text -->
+    <div id="hint-text" class="mt-4 text-center text-xs text-text-muted">
+      Press 0-3 to select, Esc or R to close
+    </div>
+  </div>
+
+  <!-- Hint shown when dialog is closed -->
+  <div
+    id="dialog-closed-hint"
+    class="absolute hidden items-center justify-center gap-3 rounded-2xl border border-border/50 bg-bg-card/50 px-8 py-6 text-text-muted transition-opacity duration-200"
+  >
+    <span>Press</span>
+    <InlineKey action="r" class="h-8 min-w-[32px] rounded-lg px-2 text-sm"
+      >R</InlineKey
+    >
+    <span>to open restore dialog</span>
+  </div>
+</div>
+
+<script src="../scripts/restore-dialog/index.ts"></script>

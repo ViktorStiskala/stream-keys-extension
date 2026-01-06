@@ -1,0 +1,30 @@
+---
+import { key } from "../../styles/variants/key";
+
+interface Props {
+  class?: string;
+  action?: string; // e.g., "r" or "s" - makes the key interactive
+}
+
+const { class: className, action } = Astro.props;
+const isInteractive = !!action;
+const styles = key({ size: "xs", interactive: isInteractive });
+---
+
+<kbd
+  class:list={[styles.root(), "align-middle mx-0.5", className]}
+  data-demo-key={action}
+  tabindex={isInteractive ? 0 : undefined}
+  role={isInteractive ? "button" : undefined}
+  style="box-shadow: 0 2px 0 var(--color-key-shadow);"
+>
+  <slot />
+</kbd>
+
+<style>
+  /* Only targets interactive keys since data-demo-key is only added when action prop is provided */
+  kbd[data-demo-key]:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--color-key-shadow);
+  }
+</style>

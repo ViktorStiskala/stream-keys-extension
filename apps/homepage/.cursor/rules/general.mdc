@@ -1,0 +1,274 @@
+---
+globs: apps/homepage/**
+alwaysApply: false
+---
+# Stream Keys Homepage Development Notes
+
+## Project Overview
+
+This is the marketing homepage for the Stream Keys browser extension. Built with Astro, Tailwind CSS v4, and TypeScript, deployed to Cloudflare Pages.
+
+## Tech Stack
+
+- **Astro** v5.x - Static site generator
+- **Tailwind CSS** v4 - CSS-first configuration via `@tailwindcss/vite`
+- **TypeScript** - Strict mode enabled
+- **Cloudflare Pages** - Static deployment target
+
+## Project Structure
+
+```
+apps/homepage/
+├── astro.config.mjs       # Astro + Tailwind + Cloudflare + Icon config
+├── eslint.config.js       # ESLint flat config with Tailwind plugin
+├── tsconfig.json          # TypeScript config (extends astro/tsconfigs/strict)
+├── public/                # Static assets (images, favicon)
+└── src/
+    ├── components/
+    │   ├── primitives/    # Base building blocks (Card, Key, Button)
+    │   ├── cards/         # Card-like components
+    │   ├── keyboard/      # Keyboard key components
+    │   ├── RestoreDialog.astro
+    │   └── CheckItem.astro
+    ├── layouts/           # Page layouts
+    ├── pages/             # Route pages
+    ├── scripts/           # Client-side TypeScript
+    │   └── restore-dialog/  # Interactive demo modules
+    └── styles/
+        ├── variants/      # Tailwind Variants definitions
+        └── global.css     # Global styles, theme, and Tailwind config
+```
+
+See `components.mdc` rule for detailed component documentation.
+
+## Commands
+
+```bash
+npm run dev          # Start dev server (http://localhost:4321)
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run typecheck    # TypeScript type checking (astro check + tsc --noEmit)
+npm run lint         # Check for linting errors
+npm run lint:fix     # Auto-fix linting errors
+npm run format       # Format code with Prettier
+npm run format:check # Check formatting without modifying
+npm run check        # Run all checks (typecheck + lint + format:check)
+```
+
+## Code Quality Requirements
+
+**After making changes to source files in `src/`, run checks before completing the task.**
+
+Run `npm run check` to verify:
+- TypeScript types are correct (`astro check` for `.astro` files + `tsc --noEmit` for `.ts` files)
+- ESLint rules pass
+- Tailwind CSS classes use canonical form (e.g., `text-text-muted` instead of `text-[var(--color-text-muted)]`)
+- No deprecated class names (e.g., `shrink-0` not `flex-shrink-0`)
+- Code is formatted with Prettier
+
+Use `npm run lint:fix` and `npm run format` to auto-fix issues.
+
+**The task is NOT complete until `npm run check` passes with no errors.**
+
+## Design System
+
+### CSS Variables (defined in `src/styles/global.css`)
+
+**Colors:**
+- `--color-bg`: #0a0a0f (base background)
+- `--color-bg-elevated`: #12121a
+- `--color-bg-card`: #1a1a24
+- `--color-surface`: #222230
+- `--color-border`: #2a2a3a
+- `--color-text`: #f0f0f5
+- `--color-text-muted`: #9090a0
+- `--color-text-subtle`: #606070
+- `--color-accent`: #a855f7 (purple)
+- `--color-accent-bright`: #c084fc
+- `--color-gold`: #fbbf24
+
+**Fonts:**
+- `--font-display`: Fraunces (headings)
+- `--font-mono`: JetBrains Mono (code/keys)
+- `--font-body`: Inter (body text)
+
+### Animation Classes
+
+- `.animate-fade-in` - Fade in with upward motion
+- `.animate-float` - Gentle floating effect
+- `.animate-pulse-glow` - Pulsing glow effect
+- `.animate-key-press` - Keyboard key press simulation
+- `.delay-100` to `.delay-800` - Stagger animation delays
+
+### Utility Classes
+
+- `.gradient-text` - Purple to gold gradient text
+- `.glow-accent` - Purple glow shadow
+- `.glow-gold` - Gold glow shadow
+- `.demo-key` - Clickable keyboard key with hover/active states (for interactive demo)
+
+## Components
+
+The homepage uses a domain-based component organization with Tailwind Variants for type-safe styling. Components are organized into:
+
+- **primitives/** - Base building blocks (Card, Key, Button)
+- **cards/** - Card-like components (FeatureCard, BrowserCard, ServiceBadge)
+- **keyboard/** - Keyboard key components (KeyboardKey, InlineKey, DemoKey)
+
+See the `components.mdc` rule for detailed component documentation, props, and usage examples.
+
+### Quick Reference
+
+```astro
+// Primitives
+import Card from "../components/primitives/Card.astro";
+import Key from "../components/primitives/Key.astro";
+import Button from "../components/primitives/Button.astro";
+
+// Cards
+import FeatureCard from "../components/cards/FeatureCard.astro";
+import BrowserCard from "../components/cards/BrowserCard.astro";
+import ServiceBadge from "../components/cards/ServiceBadge.astro";
+
+// Keyboard
+import KeyboardKey from "../components/keyboard/KeyboardKey.astro";
+import InlineKey from "../components/keyboard/InlineKey.astro";
+import DemoKey from "../components/keyboard/DemoKey.astro";
+```
+
+## Interactive Demo (Restore Dialog)
+
+The homepage includes a fully interactive demo of the position restore feature. Located in `src/scripts/restore-dialog/`:
+
+```
+restore-dialog/
+├── index.ts         # Entry point, initialization
+├── config.ts        # Constants, video list, position generation
+├── state.ts         # State management (positions, current time, dialog state)
+├── types.ts         # TypeScript interfaces
+├── events.ts        # Custom events (timeupdate, historychange, closedialog)
+├── time.ts          # Time formatting utilities
+├── positions.ts     # Position list rendering and management
+├── dialog.ts        # Dialog open/close/toggle
+├── keyboard.ts      # Keyboard shortcuts (R, S, Escape, 0-9)
+├── banner.ts        # Banner notification display
+├── progress-bar.ts  # Fake video progress bar with drag support
+└── visibility.ts    # Intersection Observer for scoped shortcuts
+```
+
+### Key Patterns
+
+**Visibility-scoped shortcuts**: Keyboard shortcuts only work when the demo section (`#restore`) is visible. Uses `IntersectionObserver` in `visibility.ts`.
+
+**Custom events**: Components communicate via custom events dispatched on `window`:
+- `streamkeys:timeupdate` - Progress bar time changed
+- `streamkeys:historychange` - Position history modified
+- `streamkeys:closedialog` - Request to close dialog
+
+**Demo key buttons**: Clickable R/S buttons in the left column trigger the same actions as keyboard shortcuts. IDs: `demo-key-r`, `demo-key-s`.
+
+**Random content**: Video titles and initial positions are randomized on load and reset. See `VIDEOS` array and `getRandomVideoSeconds()` in `config.ts`.
+
+## Icons (Astro Icon + Iconify)
+
+Uses `astro-icon` with Iconify icon sets. Icons are tree-shaken - only used icons are bundled.
+
+```astro
+import { Icon } from "astro-icon/components";
+
+<Icon name="logos:chrome" class="w-6 h-6" />
+<Icon name="streamline-logos:disney-plus-logo-block" class="w-6 h-6" />
+```
+
+Installed icon sets:
+- `@iconify-json/logos` - Browser logos (Chrome, Firefox, Safari, Edge)
+- `@iconify-json/streamline-logos` - Service logos (Disney+, HBO Max, BBC iPlayer, YouTube)
+
+## Tailwind v4 Notes
+
+This project uses Tailwind CSS v4 with the Vite plugin:
+- No `tailwind.config.js` needed - uses CSS-first configuration
+- Theme customization via `@theme` directive in `global.css`
+- Import with `@import "tailwindcss"` in CSS files
+
+### Use Canonical Class Names
+
+**Always use canonical Tailwind class names instead of arbitrary value syntax.**
+
+When colors/fonts are defined in `@theme`, Tailwind generates native utility classes:
+
+| Instead of (arbitrary/deprecated)       | Use (canonical)    |
+|-----------------------------------------|--------------------|
+| `text-[var(--color-text-muted)]`        | `text-text-muted`  |
+| `bg-[var(--color-bg-card)]`             | `bg-bg-card`       |
+| `border-[var(--color-border)]`          | `border-border`    |
+| `font-[family-name:var(--font-display)]`| `font-display`     |
+| `flex-shrink-0`                         | `shrink-0`         |
+| `flex-grow`                             | `grow`             |
+| `overflow-ellipsis`                     | `text-ellipsis`    |
+| `overflow-clip`                         | `text-clip`        |
+
+The linter (`npm run lint`) warns about non-canonical classes. Additionally, `npm run lint:classes` checks for deprecated Tailwind v3 class names.
+
+### Tailwind ESLint Plugin
+
+This project uses `@hyoban/eslint-plugin-tailwindcss@alpha` (v4.0.0-alpha.x), a fork with Tailwind v4 support.
+
+**Features:**
+- `classnames-order` - Auto-sorts Tailwind classes consistently (auto-fixable with `--fix`)
+- `no-custom-classname` - Warns about non-Tailwind classes (requires whitelist)
+- `no-contradicting-classname` - Catches conflicts like `p-2 p-4`
+- `enforces-shorthand` - Promotes shorthand utilities
+
+**Known quirks (alpha version):**
+- Requires **absolute path** to CSS config file (relative paths fail with worker resolution)
+- Template interpolations like `delay-${i * 100}` are parsed as `delay-` (incomplete class)
+
+**Configuration in `eslint.config.js`:**
+```javascript
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// In settings:
+settings: {
+  tailwindcss: {
+    config: path.join(__dirname, 'src/styles/global.css'), // MUST be absolute
+    whitelist: [
+      'restore-dialog-.*',    // JS DOM targeting
+      'service-badge',        // CSS variable scoping
+      'keyboard-key(-.+)?',   // JS-toggled animation states
+      'glow-accent',          // Custom effect in global.css
+      'delay-(\\d+)?',        // Dynamic delay from template interpolation
+    ],
+  },
+}
+```
+
+**When to add to whitelist:**
+1. **JS-toggled classes** - Classes added/removed by JavaScript (e.g., `--thumping`, `--flying`)
+2. **CSS variable scoping** - Classes that set CSS custom properties for child styling
+3. **DOM targeting** - Classes used only for `querySelector()` / `getElementById()`
+4. **Template interpolation** - Dynamic class patterns that ESLint can't evaluate statically
+
+**Adding new whitelist entries:**
+- Patterns are regex - use `\\d+` for digits, `.*` for any chars, `(-.+)?` for optional suffixes
+- Test with `npm run lint` to verify the pattern matches
+
+## Cloudflare Pages Deployment
+
+Build settings:
+- **Build command**: `npm run build`
+- **Output directory**: `dist`
+- **Node.js version**: 25.x (matches `.node-version`)
+
+The `@astrojs/cloudflare` adapter is configured for static output.
+
+## Best Practices
+
+1. **Components**: Keep components in `src/components/`, use `.astro` extension
+2. **Styling**: Use Tailwind utilities and the variant system for consistency
+3. **Images**: Place in `public/images/`, reference with `/images/...`
+4. **Animations**: Prefer CSS animations over JavaScript for performance
+5. **Accessibility**: Include proper ARIA labels and semantic HTML

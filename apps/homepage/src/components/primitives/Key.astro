@@ -1,0 +1,138 @@
+---
+import { key, type KeyVariants } from "../../styles/variants/key";
+
+interface Props extends KeyVariants {
+  label: string;
+  description?: string;
+  href?: string;
+  class?: string;
+  /** Enable click-to-fly animation effect */
+  clickEffect?: boolean;
+  /** Custom data attributes to pass to the key element */
+  dataAttrs?: Record<string, string>;
+}
+
+const {
+  label,
+  description,
+  href,
+  class: className,
+  size,
+  interactive,
+  animate,
+  wide,
+  clickEffect = false,
+  dataAttrs = {},
+} = Astro.props;
+
+// If href is provided, make it interactive
+const isInteractive = interactive || !!href;
+const Tag = href ? "a" : "div";
+const styles = key({ size, interactive: isInteractive, animate, wide });
+
+// Build data attributes
+const dataAttributes = Object.entries(dataAttrs).reduce(
+  (acc, [k, v]) => {
+    acc[`data-${k}`] = v;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
+
+if (clickEffect) {
+  dataAttributes["data-interactive"] = "";
+}
+---
+
+<div class={styles.wrapper()}>
+  <div class="keyboard-key-wrapper">
+    <Tag
+      href={href}
+      class:list={[
+        "keyboard-key",
+        styles.root(),
+        "no-underline relative",
+        className,
+      ]}
+      style="box-shadow: 0 4px 0 var(--color-key-shadow), 0 6px 20px rgba(0, 0, 0, 0.3);"
+      {...dataAttributes}
+    >
+      <span class="relative z-10">{label}</span>
+      <div class={styles.shine()}></div>
+    </Tag>
+  </div>
+  {description && <span class={styles.description()}>{description}</span>}
+</div>
+
+{clickEffect && <script src="../../scripts/keyboard-key.ts" />}
+
+<style>
+  .keyboard-key:hover {
+    transform: translateY(2px);
+    box-shadow:
+      0 2px 0 var(--color-key-shadow),
+      0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .keyboard-key:active {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 var(--color-key-shadow),
+      0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Interactive click animation (requires clickEffect prop) */
+  .keyboard-key-wrapper {
+    position: relative;
+  }
+
+  @keyframes key-thump {
+    0% {
+      transform: translateY(0);
+    }
+    15% {
+      transform: translateY(8px);
+    }
+    25% {
+      transform: translateY(6px);
+    }
+    40% {
+      transform: translateY(8px);
+    }
+    60% {
+      transform: translateY(-3px);
+    }
+    75% {
+      transform: translateY(1px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes key-fly-up {
+    0% {
+      transform: translate(-50%, -30%) scale(0.8);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(calc(-50% + var(--fly-direction, 0) * 150%), -200px)
+        scale(0.25);
+      opacity: 0;
+    }
+  }
+
+  :global(.keyboard-key--thumping) {
+    animation: key-thump 400ms ease-out;
+  }
+
+  :global(.keyboard-key--flying) {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: -1;
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation: key-fly-up 800ms ease-out forwards;
+  }
+</style>

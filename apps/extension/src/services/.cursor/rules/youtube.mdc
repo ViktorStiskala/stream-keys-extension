@@ -1,0 +1,75 @@
+---
+description: YouTube streaming service handler - Standard DOM and restore-position only. Apply when user mentions YouTube.
+globs:
+  - "**/youtube.ts"
+  - "**/services/youtube*"
+  - "resources/dom/youtube*"
+alwaysApply: false
+---
+
+# YouTube Handler Notes
+
+## Feature Configuration
+
+YouTube handler only enables **restore-position** feature. All other features are disabled:
+- `keyboard: false` - YouTube has its own keyboard shortcuts (arrow keys, space, etc. are not overridden)
+- `subtitles: false` - No auto-subtitle selection
+- `fullscreenOverlay: false` - YouTube handles focus properly
+
+**Note**: Even with `keyboard: false`, the **R key** works to open the restore position dialog. A minimal keyboard handler is set up automatically when `restorePosition: true`.
+
+## Two Video Elements
+
+YouTube has two video elements - important to select the correct one:
+
+1. **Main player video**: `#movie_player video.video-stream` - the active video
+2. **Inline preview video**: `#inline-preview-player video.video-stream` - thumbnail preview (do NOT use)
+
+Use the selector `#movie_player video.video-stream` to get only the main video.
+
+## Standard HTML5 Video API
+
+YouTube uses standard HTML5 video with blob URLs (like HBO Max). The `video.currentTime` and `video.duration` properties work correctly - no custom getters needed.
+
+## Player Elements
+
+- Main player container: `#movie_player` (has class `html5-video-player`)
+- Video element: `#movie_player video.video-stream.html5-main-video`
+- Progress bar: `.ytp-progress-bar` with `aria-valuemax` (duration) and `aria-valuenow` (current time)
+
+## SPA Navigation
+
+YouTube is a Single Page Application. Users can navigate from homepage to watch pages without full page reload. The background script uses `webNavigation.onHistoryStateUpdated` to detect SPA navigation and inject the handler.
+
+The restore-position feature's video change detection (runs every 1 second) automatically detects new videos during SPA navigation.
+
+## DOM Reference
+
+**Important:** Consult `resources/dom/youtube.html` when implementing any DOM-related changes. This file contains a snapshot of the YouTube player DOM structure.
+
+## Testing
+
+### Test File Location
+
+Tests are co-located at `src/services/youtube.test.ts`.
+
+### Internal Functions for Testing
+
+The `YouTubeHandler` exports a `_test` object with internal functions:
+```typescript
+YouTubeHandler._test.getPlayer()    // Get movie_player element
+YouTubeHandler._test.getVideo()     // Get main video element
+```
+
+### DOM Fixture Testing
+
+Tests use the real DOM fixture from `resources/dom/youtube.html`:
+```typescript
+import { loadFixture, resetFixture } from '@test';
+
+beforeEach(() => {
+  resetFixture();
+  loadFixture('youtube');
+});
+```
+

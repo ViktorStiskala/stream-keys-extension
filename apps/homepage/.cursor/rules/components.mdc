@@ -1,0 +1,174 @@
+---
+description: Apply when creating new components, modifying existing components in src/components/, working with Tailwind Variants in src/styles/variants/, refactoring component styling, adding new primitives, or debugging component import issues. Essential for understanding the component architecture, variant system, folder organization, and import paths.
+globs:
+  - apps/homepage/src/components/**
+  - apps/homepage/src/styles/variants/**
+---
+
+# Component System
+
+The homepage uses a domain-based component organization with Tailwind Variants for type-safe styling.
+
+## Directory Structure
+
+```
+src/components/
+├── primitives/           # Base building blocks
+│   ├── Card.astro        # Card container with glow effects
+│   ├── Key.astro         # Keyboard key with size variants
+│   ├── Button.astro      # Button/link with variant styles
+│   └── index.ts
+├── cards/                # Card-like components
+│   ├── FeatureCard.astro # Feature highlight card (uses Card)
+│   ├── BrowserCard.astro # Browser download card (uses Card)
+│   └── ServiceBadge.astro # Service with features (custom styling)
+├── keyboard/             # Keyboard key components
+│   ├── KeyboardKey.astro # Full keyboard key (uses Key)
+│   ├── InlineKey.astro   # Small inline key (uses key variant)
+│   └── DemoKey.astro     # Interactive demo key (uses key variant)
+├── RestoreDialog.astro   # Demo dialog section
+└── CheckItem.astro       # Check icon list item
+
+src/styles/variants/
+├── card.ts               # Card variant definition
+├── key.ts                # Key variant definition
+├── button.ts             # Button variant definition
+└── index.ts              # Re-exports all variants
+```
+
+## Primitives
+
+### Card
+
+Container component with optional glow effect on hover.
+
+```astro
+import Card from "../primitives/Card.astro";
+
+<Card interactive elevated>Content</Card>
+<Card as="a" href="/link" interactive>Link Card</Card>
+```
+
+**Props:**
+- `as`: "div" | "a" (default: "div")
+- `href`: string (for links)
+- `padding`: "sm" | "md" | "lg" (default: "lg")
+- `radius`: "md" | "lg" (default: "lg")
+- `interactive`: boolean - adds hover border effect
+- `elevated`: boolean - adds glow overlay and background change on hover
+
+### Key
+
+Keyboard key component with box-shadow depth effect.
+
+```astro
+import Key from "../primitives/Key.astro";
+
+<Key label="R" description="Restore" size="lg" />
+<Key label="Space" href="#section" interactive />
+```
+
+**Props:**
+- `label`: string (required) - Key text
+- `description`: string - Text below the key
+- `href`: string - Makes key a link
+- `size`: "xs" | "sm" | "md" | "lg" (default: "md")
+- `interactive`: boolean - hover effects
+- `animate`: boolean - continuous press animation
+- `wide`: boolean - extra horizontal padding
+- `clickEffect`: boolean - enables click-to-fly animation
+
+### Button
+
+Button/link component with variant styles.
+
+```astro
+import Button from "../primitives/Button.astro";
+
+<Button variant="primary">Download</Button>
+<Button as="a" href="/link" variant="secondary">Learn More</Button>
+```
+
+**Props:**
+- `as`: "button" | "a" (default: "button")
+- `href`: string (for links)
+- `variant`: "primary" | "secondary" | "ghost" (default: "primary")
+- `size`: "sm" | "md" | "lg" (default: "md")
+- `type`: "button" | "submit" | "reset" (for button elements)
+
+## Variant System
+
+Variants are defined in `src/styles/variants/` using `tailwind-variants`.
+
+### Exporting Variant Types
+
+Use `VariantProps` from `tailwind-variants` to export types that work with TypeScript's `extends`:
+
+```typescript
+import { tv, type VariantProps } from "tailwind-variants";
+
+export const button = tv({ /* ... */ });
+export type ButtonVariants = VariantProps<typeof button>;
+```
+
+**Important:** Do NOT use `Parameters<typeof variant>[0]` - it returns a complex union type that breaks `interface extends`.
+
+### Using Variants Directly
+
+For specialized components that need direct variant access:
+
+```typescript
+import { key } from "../../styles/variants/key";
+
+const styles = key({ size: "xs", interactive: true });
+// styles.root() - main element classes
+// styles.shine() - shine overlay classes
+// styles.wrapper() - wrapper container classes
+// styles.description() - description text classes
+```
+
+### Variant Slots
+
+**Card slots:** `root`, `glow`, `content`
+**Key slots:** `root`, `shine`, `wrapper`, `description`
+**Button:** No slots (single element)
+
+## CSS Organization
+
+**All component-specific CSS should be in scoped `<style>` blocks**, not separate files:
+- Hover/active effects → scoped `<style>` in the component
+- `@keyframes` animations → scoped `<style>` in the component
+- JS-toggled classes → use `:global(.class-name)` in scoped styles
+
+Example from `Key.astro`:
+```css
+<style>
+  .keyboard-key:hover { /* local scope */ }
+  :global(.keyboard-key--thumping) { /* JS-toggled, needs global */ }
+</style>
+```
+
+**Only `global.css` should exist in `styles/`** for theme tokens and truly global styles.
+
+## Hard Constraints
+
+1. **New card-like components MUST use the Card primitive** or the card variant for styling consistency.
+
+2. **New keyboard key components MUST use the Key primitive** or the key variant for styling consistency.
+
+3. **Variant definitions MUST be in `styles/variants/`**, not inline in components.
+
+4. **Component-specific CSS MUST be in scoped `<style>` blocks**, not separate CSS files.
+
+5. **When adding a new primitive:**
+   - Create the variant in `styles/variants/{name}.ts`
+   - Export from `styles/variants/index.ts`
+   - Create the component in `components/primitives/{Name}.astro`
+
+6. **ServiceBadge exception:** Uses custom `--service-color` CSS variable pattern for per-service hover colors. Do not force Card primitive on it.
+
+7. **Import paths after reorganization:**
+   - Cards: `../components/cards/FeatureCard.astro`
+   - Keyboard: `../components/keyboard/KeyboardKey.astro`
+   - Primitives: `../components/primitives/Card.astro`
+   - Variants: `../../styles/variants/key`

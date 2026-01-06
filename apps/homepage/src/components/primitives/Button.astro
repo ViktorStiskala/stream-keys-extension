@@ -1,0 +1,30 @@
+---
+import { button, type ButtonVariants } from "../../styles/variants/button";
+
+interface Props extends ButtonVariants {
+  as?: "button" | "a";
+  href?: string;
+  class?: string;
+  type?: "button" | "submit" | "reset";
+}
+
+const {
+  as = "button",
+  href,
+  class: className,
+  variant,
+  size,
+  type = "button",
+} = Astro.props;
+
+const Tag = as === "a" ? "a" : "button";
+const styles = button({ variant, size });
+---
+
+<Tag
+  href={as === "a" ? href : undefined}
+  type={as === "button" ? type : undefined}
+  class:list={[styles, className]}
+>
+  <slot />
+</Tag>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stream Keys Settings</title>
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Stream Keys Settings</h1>
+
+      <section class="setting-section">
+        <h2>Enabled Services</h2>
+        <p class="description">
+          Enable or disable the extension for individual streaming services.
+        </p>
+        <div id="services-list" class="services-list">
+          <!-- Service toggles rendered by JavaScript -->
+        </div>
+      </section>
+
+      <section class="setting-section">
+        <h2>Subtitle Language Preference</h2>
+        <p class="description">
+          Languages are sorted by priority – the first language in the list has the highest
+          priority. Matching is <strong>case insensitive</strong>.
+        </p>
+        <p class="note">
+          <strong>Note:</strong> The language name must match exactly what is displayed in the
+          streaming service's subtitle menu.
+        </p>
+
+        <div class="add-language">
+          <input
+            type="text"
+            id="language-input"
+            placeholder="Enter language name..."
+            autocomplete="off"
+          />
+          <button type="button" id="add-button">Add</button>
+        </div>
+
+        <ul id="language-list" class="language-list">
+          <!-- Language items will be rendered here by JavaScript -->
+        </ul>
+
+        <div class="section-footer">
+          <button type="button" id="restore-defaults-button" class="restore-defaults-button">
+            Restore defaults
+          </button>
+        </div>
+      </section>
+
+      <section class="setting-section">
+        <h2>Position History</h2>
+        <p class="description">
+          Track playback position and allow restoring to previous positions using
+          <span class="nowrap">the <kbd>R</kbd> key.</span>
+        </p>
+
+        <label class="toggle-row">
+          <span class="toggle-label">Enable position history</span>
+          <input type="checkbox" id="position-history-toggle" class="toggle-input" />
+          <span class="toggle-switch"></span>
+        </label>
+      </section>
+
+      <section class="setting-section">
+        <h2>Playback Controls</h2>
+
+        <label class="toggle-row">
+          <span class="toggle-label">Capture media keys</span>
+          <input type="checkbox" id="capture-media-keys-toggle" class="toggle-input" />
+          <span class="toggle-switch"></span>
+        </label>
+        <p class="description">
+          Control playback with keyboard media keys. Play/Pause toggles video, Previous/Next track
+          skip backward/forward.
+        </p>
+
+        <label class="toggle-row with-input">
+          <span class="toggle-label">Custom seek time</span>
+          <div class="toggle-controls">
+            <input
+              type="number"
+              id="seek-time-input"
+              class="number-input"
+              min="5"
+              max="120"
+              step="5"
+              value="10"
+            />
+            <span class="input-suffix">sec</span>
+            <input type="checkbox" id="custom-seek-toggle" class="toggle-input" />
+            <span class="toggle-switch"></span>
+          </div>
+        </label>
+
+        <p class="description">
+          Override the default skip duration for arrow keys, media keys, and player buttons.
+        </p>
+
+        <p class="note">
+          <strong>Note:</strong> Custom seek time only works with keyboard shortcuts and media keys.
+          Not supported on Disney+.
+        </p>
+      </section>
+    </div>
+
+    <script type="module" src="index.ts"></script>
+  </body>
+</html>
