@@ -8,7 +8,7 @@
     "size": { "width": 660, "height": 480 }
   },
   "contents": [
-    { "x": 151, "y": 294, "type": "file", "path": "../../build/production/safari/xcode/DerivedData/Build/Products/Release/Stream Keys.app" },
-    { "x": 510, "y": 289, "type": "link", "path": "/Applications" }
+    { "x": 151, "y": 279, "type": "file", "path": "../../build/production/safari/xcode/DerivedData/Build/Products/Release/Stream Keys.app" },
+    { "x": 510, "y": 274, "type": "link", "path": "/Applications" }
   ]
 }

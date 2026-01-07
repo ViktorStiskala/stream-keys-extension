@@ -8,29 +8,9 @@ success() { echo -e "  ${GREEN}✓ $1${NC}"; }
 error() { echo -e "  ${RED}✗ ERROR: $1${NC}"; }
 warn() { echo -e "${YELLOW}$1${NC}"; }
 
-# Run a command with output displayed inside borders
+# Run a command - output goes directly to terminal (preserves colors/TTY)
 run() {
-    if [ "$IS_TTY" = true ]; then
-        local content_width=$((TERM_WIDTH - 4))
-        
-        "$@" 2>&1 | while IFS= read -r line; do
-            # Truncate line if too long
-            if [ ${#line} -gt $content_width ]; then
-                line="${line:0:$((content_width - 3))}..."
-            fi
-            
-            # Print line with left border, content, and newline
-            printf "║ %-${content_width}s\n" "$line"
-            
-            # Redraw borders after each line (fixes right border and bottom)
-            redraw_output_borders
-        done
-        
-        return "${PIPESTATUS[0]}"
-    else
-        "$@" 2>&1
-        return "${PIPESTATUS[0]}"
-    fi
+    "$@"
 }
 
 # Helper for notarytool commands

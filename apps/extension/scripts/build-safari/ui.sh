@@ -1,5 +1,5 @@
 # =============================================================================
-# UI - Colors, TTY detection, and full-screen display functions
+# UI - Colors, TTY detection, and fixed header with scrolling output
 # =============================================================================
 
 # Colors
@@ -51,7 +51,6 @@ detect_terminal_size() {
 # Drawing Primitives
 # =============================================================================
 
-# Draw horizontal line at row with specific characters
 draw_hline() {
     local row=$1
     local left_char="$2"
@@ -66,22 +65,6 @@ draw_hline() {
     printf "%s" "$right_char"
 }
 
-# Draw a text row with borders (content is left-aligned, supports color codes)
-draw_row() {
-    local row=$1
-    local content="$2"
-    local content_width=$((TERM_WIDTH - 4))  # 2 for borders, 2 for padding
-    
-    tput cup $row 0
-    printf "║ "
-    # Use %b to interpret escape sequences for colors
-    printf "%b" "$content"
-    # Fill remaining space and add right border
-    tput cup $row $((TERM_WIDTH - 1))
-    printf "║"
-}
-
-# Draw a text row with content on left and right
 draw_row_lr() {
     local row=$1
     local left="$2"
@@ -97,7 +80,7 @@ draw_row_lr() {
 }
 
 # =============================================================================
-# Full-Screen Display Functions
+# Fixed Header Display with Scrolling Region
 # =============================================================================
 
 init_display() {
@@ -105,10 +88,11 @@ init_display() {
     
     detect_terminal_size
     
-    # Header: top + title + sep + steps + sep + "Output" + sep = 6 + TOTAL_STEPS
-    HEADER_LINES=$((TOTAL_STEPS + 6))
+    # Header: top border + title + sep + steps + bottom border = 4 + TOTAL_STEPS
+    HEADER_LINES=$((TOTAL_STEPS + 4))
     OUTPUT_START_LINE=$((HEADER_LINES))
     
+    # Need enough space for header + some output
     if [ $TERM_HEIGHT -lt $((HEADER_LINES + 5)) ]; then
         IS_TTY=false
         return
@@ -117,18 +101,19 @@ init_display() {
     tput civis 2>/dev/null || true
     tput clear
     
-    draw_full_frame
+    draw_header
     
-    # Set scrolling region for output content (between output header and bottom border)
-    tput csr $OUTPUT_START_LINE $((TERM_HEIGHT - 2))
+    # Set scrolling region: output area only (below header)
+    # This keeps the header fixed while output scrolls
+    tput csr $OUTPUT_START_LINE $((TERM_HEIGHT - 1))
     tput cup $OUTPUT_START_LINE 0
 }
 
-draw_full_frame() {
+draw_header() {
     # Top border
     draw_hline 0 "╔" "═" "╗"
     
-    # Title row - use simple ASCII for calculation
+    # Title row
     local title="Stream Keys - Safari Extension Build"
     draw_row_lr 1 "$title" "$BUILD_DESCRIPTION"
     
@@ -140,22 +125,8 @@ draw_full_frame() {
         draw_step_line $((i + 3)) $i "pending"
     done
     
-    # Separator before output
-    draw_hline $((TOTAL_STEPS + 3)) "╠" "═" "╣"
-    
-    # Output label
-    draw_row $((TOTAL_STEPS + 4)) "${DIM}Output${NC}"
-    
-    # Separator after output label  
-    draw_hline $((TOTAL_STEPS + 5)) "╠" "═" "╣"
-    
-    # Output area - empty rows with borders
-    for row in $(seq $OUTPUT_START_LINE $((TERM_HEIGHT - 2))); do
-        draw_row $row ""
-    done
-    
     # Bottom border
-    draw_hline $((TERM_HEIGHT - 1)) "╚" "═" "╝"
+    draw_hline $((TOTAL_STEPS + 3)) "╚" "═" "╝"
 }
 
 draw_step_line() {
@@ -176,9 +147,6 @@ draw_step_line() {
     esac
     
     local left_text="[$step_num/$TOTAL_STEPS] $name"
-    local right_text=$(printf "%b%s%b" "$status_color" "$status_text" "$NC")
-    
-    # Calculate positions
     local left_len=${#left_text}
     local status_display_len=${#status_text}
     local space=$((TERM_WIDTH - 4 - left_len - status_display_len))
@@ -194,37 +162,26 @@ update_step_status() {
     local status=$2
     [ "$IS_TTY" = false ] && return
     
+    # Save cursor position
     tput sc
+    
+    # Temporarily reset scrolling region to access header
+    tput csr 0 $((TERM_HEIGHT - 1))
+    
+    # Update the step line
     draw_step_line $((step_idx + 3)) $step_idx "$status"
-    tput rc
-}
-
-# Redraw borders for the output area (called after each output line)
-redraw_output_borders() {
-    [ "$IS_TTY" = false ] && return
     
-    tput sc
+    # Restore scrolling region
+    tput csr $OUTPUT_START_LINE $((TERM_HEIGHT - 1))
     
-    # Only draw left border on the LAST row (where new blank line scrolls in)
-    # Other rows already have ║ as part of their content from run()
-    tput cup $((TERM_HEIGHT - 2)) 0
-    printf "║"
-    
-    # Draw right borders on all rows
-    for row in $(seq $OUTPUT_START_LINE $((TERM_HEIGHT - 2))); do
-        tput cup $row $((TERM_WIDTH - 1))
-        printf "║"
-    done
-    
-    # Redraw bottom border
-    draw_hline $((TERM_HEIGHT - 1)) "╚" "═" "╝"
-    
+    # Restore cursor position
     tput rc
 }
 
 cleanup_display() {
     [ "$IS_TTY" = false ] && return
     
+    # Reset scrolling region to full screen
     tput csr 0 $((TERM_HEIGHT - 1))
     tput cnorm 2>/dev/null || true
     tput cup $((TERM_HEIGHT - 1)) 0
