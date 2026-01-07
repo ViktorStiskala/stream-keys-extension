@@ -1,0 +1,142 @@
+---
+description: Safari build tool - Python/Textual TUI for building Safari extension
+globs:
+  - apps/extension/scripts/build-safari/**/*.py
+  - apps/extension/scripts/build-safari/pyproject.toml
+  - apps/extension/scripts/build-safari/dmg_settings.py
+---
+
+# Safari Build Tool
+
+Python-based build tool for creating Safari extension packages (DMG and App Store).
+
+## Hard Constraints
+
+1. **Always use `uv` package manager** - Never use `pip`, `pip install`, or `python -m pip`. All package operations must go through `uv`.
+
+2. **Reinstalling packages** - Use `uv sync --reinstall` to force reinstall, not `uv pip install --force-reinstall`.
+
+3. **Running the tool** - Always run from `apps/extension/` directory:
+   ```bash
+   uv run --directory scripts/build-safari python -m build_safari [options]
+   ```
+
+4. **Python 3.14+** - No backward compatibility. Use modern typing syntax (`list[str]` not `List[str]`, `X | None` not `Optional[X]`).
+
+## Architecture
+
+### Entry Point
+
+`__main__.py` - CLI entry point that:
+- Parses arguments via `cli.py`
+- Loads configuration from `pyproject.toml` and environment variables
+- Dispatches to TUI (`BuildApp`) or simple console output (`SimpleUI`)
+
+### Configuration (`config.py`)
+
+Dataclasses for typed configuration:
+- `DMGConfig` - DMG layout settings (icon positions, window size)
+- `DeveloperConfig` - Apple credentials (from environment variables)
+- `AppConfig` - App metadata (from `pyproject.toml` `[tool.build-safari]` section)
+- `BuildConfig` - Combined runtime configuration
+
+**Environment variables** (loaded from `.env` locally, CI secrets in GitHub):
+- `APPLE_DEVELOPER_NAME` - Developer name for signing
+- `APPLE_TEAM_ID` - Apple Team ID
+- `APPLE_ID` - Apple ID for notarization
+- `APPLE_APP_SPECIFIC_PASSWORD` - App-specific password for notarization
+
+### Build Steps (`steps/`)
+
+Abstract `BuildStep` base class with concrete implementations:
+- `ViteBuildStep` - Runs Vite production build with `BROWSER=safari`
+- `XcodeConvertStep` - Converts extension to Xcode project via `safari-web-extension-converter`
+- `XcodeBuildStep` - Builds with `xcodebuild`, handles signing
+- `SigningVerifyStep` - Verifies code signature integrity
+- `DMGCreateStep` - Creates DMG using `dmgbuild` library
+- `NotarizeStep` - Submits to Apple notarization service
+- `StapleStep` - Staples notarization ticket to DMG
+- `AppStorePackageStep` - Creates `.pkg` for App Store submission
+
+### UI Layer (`ui/`)
+
+- `BuildUI` (Protocol) - Common interface for UI implementations
+- `BuildApp` (Textual) - Rich TUI with DataTable for steps, RichLog for output
+- `SimpleUI` - Plain console output for `--simple` mode and CI
+
+**TUI Features:**
+- Live step progress table with status indicators
+- Scrolling output log with ANSI color preservation
+- Terminal restoration on exit (prints full log to scrollback)
+- PTY support to preserve subprocess colors (`vite`, `xcodebuild`)
+
+### Utilities (`utils/`)
+
+- `ProcessRunner` - Async subprocess execution with optional PTY
+- `OutputProcessor` - Handles terminal control sequences (`\r`, `\b`, escape codes)
+- `BuildLogger` - Log file management with rotation
+
+### Build Logs (`log/`)
+
+Build logs are automatically saved to `scripts/build-safari/log/` with rotation:
+- `build.log` - Most recent build (current)
+- `build.log.1` - Previous build
+- `build.log.2`, `build.log.3`, ... - Older builds
+
+The number of log files to keep is configurable in `pyproject.toml`:
+```toml
+[tool.build-safari]
+max_log_files = 5  # default
+```
+
+**For debugging build failures:** Read `log/build.log` to see the full output of the last build, including command output and error messages. ANSI color codes are stripped from log files for readability.
+
+The log directory is git-ignored.
+
+## CLI Options
+
+```bash
+python -m build_safari --help
+
+Options:
+  --dmg           Build DMG for direct distribution
+  --rebuild-dmg   Rebuild DMG from existing build
+  --appstore      Build App Store package (.pkg)
+  --signed        Sign and notarize the build
+  --simple        Use simple console output instead of TUI
+```
+
+## Common Commands
+
+```bash
+# Development - sync dependencies
+cd apps/extension/scripts/build-safari && uv sync
+
+# Reinstall after code changes (if needed)
+cd apps/extension/scripts/build-safari && uv sync --reinstall
+
+# Build unsigned DMG (local testing)
+cd apps/extension && uv run --directory scripts/build-safari python -m build_safari --dmg
+
+# Build signed + notarized DMG
+cd apps/extension && uv run --directory scripts/build-safari python -m build_safari --dmg --signed
+
+# Build App Store package
+cd apps/extension && uv run --directory scripts/build-safari python -m build_safari --appstore
+
+# Simple mode (no TUI, for CI or debugging)
+cd apps/extension && uv run --directory scripts/build-safari python -m build_safari --dmg --simple
+```
+
+## DMG Configuration
+
+DMG settings in `pyproject.toml` under `[tool.build-safari.dmg]`:
+- Icon positions use center coordinates (same as `appdmg`)
+- Settings file `dmg_settings.py` is passed to `dmgbuild` library
+
+## Adding New Build Steps
+
+1. Create new file in `steps/` inheriting from `BuildStep`
+2. Implement `name` property and `execute()` async method
+3. Add to step sequence in `runner.py` `get_steps()` function
+4. Use `runner.run_command()` for subprocess execution with output streaming

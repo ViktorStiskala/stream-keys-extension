@@ -1,0 +1,3 @@
+# Ignore build logs (but keep this .gitignore)
+*
+!.gitignore

@@ -31,5 +31,6 @@
     "files.exclude": {
         "apps/extension/.chrome-profile": true,
         "apps/extension/.firefox-profile": true
-    }
+    },
+    "flake8.enabled": false
 }

@@ -1,5 +1,5 @@
 ---
-description: Build commands and development workflow for the StreamKeys browser extension. Apply this rule when running npm scripts (dev, build, typecheck, lint, format), creating development or production builds, targeting different browsers (Chrome, Firefox, Safari), configuring the BROWSER environment variable, troubleshooting build output directories (build/dev/, build/production/), dealing with multi-browser compilation issues, or working with Safari DMG builds. Relevant keywords: npm run dev, npm run build, vite, webpack, bundle, compile, production, development mode, safari, dmg, appdmg, notarize.
+description: Build commands and development workflow for the StreamKeys browser extension. Apply this rule when running npm scripts (dev, build, typecheck, lint, format), creating development or production builds, targeting different browsers (Chrome, Firefox, Safari), configuring the BROWSER environment variable, troubleshooting build output directories (build/dev/, build/production/), dealing with multi-browser compilation issues, or working with Safari DMG builds. Relevant keywords: npm run dev, npm run build, vite, webpack, bundle, compile, production, development mode, safari, dmg, dmgbuild, notarize, uv, python.
 globs:
   - "vite.config.ts"
   - "package.json"
@@ -22,73 +22,107 @@ alwaysApply: false
 
 ## Safari Builds
 
-Safari builds use the modular `scripts/build-safari/` directory with different modes:
+Safari builds use a Python-based build tool in `scripts/build-safari/` with Textual TUI:
 
 - `npm run build:safari` - Local testing DMG (ad-hoc signed, not notarized)
 - `npm run build:safari:signed` - Distribution DMG (signed + notarized)
-- `bash scripts/build-safari/main.sh --appstore` - App Store package
+- `npm run build:safari:appstore` - App Store package
 
-### Build Script Structure
+### Build Script Structure (Python)
 
 ```
 scripts/build-safari/
-├── main.sh           # Entry point, argument parsing, build flow
-├── config.sh         # App metadata, paths, signing identities
-├── ui.sh             # Colors, TTY detection, live progress header
-├── steps.sh          # step(), step_check(), step tracking
-├── helpers.sh        # info, success, error, run, notarytool, cleanup
-└── dmg-config.json   # appdmg configuration
+├── pyproject.toml           # uv project config with dependencies and [tool.build-safari] config
+├── dmg_settings.py          # dmgbuild configuration
+├── entitlements/            # App and extension entitlements
+│   ├── app.entitlements
+│   └── extension.entitlements
+└── src/build_safari/
+    ├── __main__.py          # Entry point
+    ├── cli.py               # argparse argument parsing
+    ├── config.py            # Configuration dataclasses (loads from pyproject.toml + .env)
+    ├── runner.py            # Build orchestration
+    ├── steps/               # Individual build steps
+    │   ├── base.py          # Abstract BuildStep class
+    │   ├── vite.py          # ViteBuildStep
+    │   ├── xcode.py         # XcodeConvertStep, XcodeBuildStep
+    │   ├── signing.py       # SigningVerifyStep
+    │   ├── dmg.py           # DMGCreateStep (uses dmgbuild)
+    │   ├── notarize.py      # NotarizeStep, StapleStep
+    │   └── appstore.py      # AppStorePackageStep
+    ├── ui/                  # User interface
+    │   ├── app.py           # Textual TUI with terminal restoration
+    │   ├── simple.py        # Simple colored output for --simple mode
+    │   └── protocol.py      # BuildUI protocol
+    └── utils/
+        ├── process.py       # Async subprocess runner with PTY for colors
+        └── terminal.py      # OutputProcessor for TUI mode
 ```
 
 ### Build Script Options
 
 ```bash
-# Local testing (no signing credentials needed)
-./scripts/build-safari/main.sh --dmg
+# Direct invocation (uses uv to manage Python environment)
+uv run --directory scripts/build-safari python -m build_safari --help
 
-# Distribution (requires APPLE_TEAM_ID, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD)
-./scripts/build-safari/main.sh --dmg --signed
+# Local testing (no signing credentials needed)
+npm run build:safari
+# or: uv run --directory scripts/build-safari python -m build_safari --dmg
+
+# Distribution (requires APPLE_DEVELOPER_NAME, APPLE_TEAM_ID, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD)
+npm run build:safari:signed
+# or: uv run --directory scripts/build-safari python -m build_safari --dmg --signed
 
 # Rebuild DMG from existing production build (skips Vite, Xcode conversion, Xcode build)
-./scripts/build-safari/main.sh --rebuild-dmg           # unsigned
-./scripts/build-safari/main.sh --rebuild-dmg --signed  # signed + notarized
+uv run --directory scripts/build-safari python -m build_safari --rebuild-dmg           # unsigned
+uv run --directory scripts/build-safari python -m build_safari --rebuild-dmg --signed  # signed + notarized
 
-# App Store (requires APPLE_TEAM_ID)
-./scripts/build-safari/main.sh --appstore
+# App Store (requires APPLE_DEVELOPER_NAME, APPLE_TEAM_ID)
+npm run build:safari:appstore
+# or: uv run --directory scripts/build-safari python -m build_safari --appstore
+
+# Simple output mode (disables TUI, useful for debugging or CI)
+uv run --directory scripts/build-safari python -m build_safari --dmg --simple
 ```
 
 The `--rebuild-dmg` option is useful when you need to regenerate the DMG without rebuilding the entire app. It validates that the existing build exists and has a valid signature (if --signed).
 
+### Configuration
+
+**App metadata** is in `scripts/build-safari/pyproject.toml` under `[tool.build-safari]`:
+- App name, bundle ID
+- Build paths
+- DMG settings (icon positions, window size, background)
+
+**Developer credentials** are in `.env` file (copy from `.env.example`):
+- `APPLE_DEVELOPER_NAME` - Name as it appears in Apple certificates
+- `APPLE_TEAM_ID` - Your 10-character Team ID
+- `APPLE_ID` - Apple ID email for notarization
+- `APPLE_APP_SPECIFIC_PASSWORD` - App-specific password
+
 ### Styled DMG Installer
 
-Safari DMGs are created with `appdmg` using a custom background image showing:
-- Stream Keys app icon (left, 150x150 at 103,162)
+Safari DMGs are created with `dmgbuild` (Python) using a custom background image showing:
+- Stream Keys app icon on the left
 - Arrow graphic pointing to Applications folder
-- Applications folder shortcut for drag-and-drop installation (150x150 at 408,162)
+- Applications folder shortcut for drag-and-drop installation
 
-Configuration: `scripts/build-safari/dmg-config.json` (paths relative to config file location)
-Background: `assets/dmg-background.png` (660x400px, or 1320x800 for Retina)
+Configuration: `scripts/build-safari/dmg_settings.py` and `[tool.build-safari.dmg]` in pyproject.toml
+Background: `assets/dmg-background.png` (660x480px window)
 
-### Live Progress Display
+### Live Progress Display (Textual TUI)
 
-In TTY mode, the build shows a live ASCII table with columns for Status, Step, and Details:
+In TTY mode, the build shows a rich terminal interface with:
+- Fixed header with build description
+- Step progress table with status indicators
+- Scrolling output log with preserved ANSI colors (via PTY)
+- Real-time waiting indicator when commands produce no output
 
-```
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║ Stream Keys - Safari Extension Build                    Signed + Notarized DMG║
-╠═══════════╦═══════╦═══════════════════════════════════════════════════════════╣
-║ Status    ║ Step  ║ Details                                                   ║
-╠═══════════╬═══════╬═══════════════════════════════════════════════════════════╣
-║ [SUCCESS] ║ [1/7] ║ Building Safari extension...                              ║
-║ [RUNNING] ║ [2/7] ║ Converting to Xcode project...                            ║
-...
-```
+When the TUI exits, the terminal is restored with the full build log in scrollback history.
 
-Status indicators: `[RUNNING]` (yellow), `[SUCCESS]` (green), `[FAILED ]` (red), `[PENDING]` (dim)
+Use `--simple` flag to disable TUI and use simple colored output instead.
 
-When a command produces no output for 2+ seconds, the step line shows "(no output for Xs)" with live updates. This provides feedback during long-running operations like `npx appdmg`.
-
-Falls back to simple output in CI environments.
+Falls back to simple output automatically in CI environments (non-TTY).
 
 ## Code Quality
 
