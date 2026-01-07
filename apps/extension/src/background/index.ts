@@ -58,7 +58,9 @@ async function getEnabledServices(): Promise<Record<ServiceId, boolean>> {
 }
 
 /**
- * Inject settings and handler scripts into a tab
+ * Inject settings and handler scripts into a tab.
+ * Uses script tag injection instead of world: 'MAIN' for Safari compatibility.
+ * The script runs in the isolated content script world but injects to main world via script tags.
  */
 async function injectHandler(tabId: number, handlerFile: string): Promise<void> {
   // Read settings from storage (with fallback to local)
@@ -91,21 +93,24 @@ async function injectHandler(tabId: number, handlerFile: string): Promise<void> 
       (result[ENABLED_SERVICES_KEY] as Record<ServiceId, boolean>) || DEFAULT_ENABLED_SERVICES,
   };
 
-  // Inject settings as global variable (main frame only)
+  // Inject settings and handler via script tags (Safari-compatible, no world: 'MAIN')
   await browser.scripting.executeScript({
     target: { tabId },
-    func: (settingsObj: StreamKeysSettings) => {
-      window.__streamKeysSettings = settingsObj;
-    },
-    args: [settings],
-    world: 'MAIN',
-  });
+    func: (settingsObj: StreamKeysSettings, handler: string) => {
+      // Inject settings as inline script into main world
+      const settingsScript = document.createElement('script');
+      settingsScript.textContent = `window.__streamKeysSettings = ${JSON.stringify(settingsObj)};`;
+      document.documentElement.appendChild(settingsScript);
+      settingsScript.remove();
 
-  // Inject handler bundle (main frame only)
-  await browser.scripting.executeScript({
-    target: { tabId },
-    files: [handlerFile],
-    world: 'MAIN',
+      // Inject handler file into main world
+      // Use browser.runtime.getURL which is available in the content script context
+      const handlerScript = document.createElement('script');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      handlerScript.src = (self as any).chrome.runtime.getURL(handler);
+      document.documentElement.appendChild(handlerScript);
+    },
+    args: [settings, handlerFile],
   });
 }
 

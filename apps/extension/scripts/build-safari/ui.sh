@@ -195,6 +195,14 @@ cleanup_display() {
 print_summary() {
     echo ""
     echo -e "${CYAN}=== Build Summary ===${NC}"
+    
+    # Calculate max step name length for proper alignment
+    local max_len=0
+    for name in "${STEP_NAMES[@]}"; do
+        local len=${#name}
+        [ $len -gt $max_len ] && max_len=$len
+    done
+    
     for i in "${!STEP_NAMES[@]}"; do
         local step_num=$((i + 1))
         local name="${STEP_NAMES[$i]}"
@@ -208,7 +216,7 @@ print_summary() {
             *)       status_text="${DIM}[SKIP]${NC}" ;;
         esac
         
-        printf "[%2d/%d] %-45s %b\n" "$step_num" "$TOTAL_STEPS" "$name" "$status_text"
+        printf "[%2d/%d] %-${max_len}s %b\n" "$step_num" "$TOTAL_STEPS" "$name" "$status_text"
     done
     echo ""
 }

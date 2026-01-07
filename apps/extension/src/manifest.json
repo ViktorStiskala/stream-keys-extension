@@ -33,14 +33,13 @@
   "content_scripts": [
     {
       "matches": ["https://*.bbc.co.uk/*"],
-      "js": ["src/shadow-patcher.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
+      "js": ["src/shadow-patcher-loader.js"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/services/*.js"],
+      "resources": ["src/services/*.js", "src/shadow-patcher.js"],
       "matches": [
         "https://*.disneyplus.com/*",
         "https://*.hbomax.com/*",

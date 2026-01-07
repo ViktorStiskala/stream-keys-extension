@@ -74,16 +74,17 @@ export default defineConfig(({ command, mode }) => {
       ...(isDebugMode ? [DebugLogger.plugin()] : []),
       webExtension({
         manifest: 'src/manifest.json',
-        additionalInputs: ['src/services/disney.ts', 'src/services/hbomax.ts', 'src/services/youtube.ts', 'src/services/bbc.ts', 'src/shadow-patcher.ts'],
+        additionalInputs: ['src/services/disney.ts', 'src/services/hbomax.ts', 'src/services/youtube.ts', 'src/services/bbc.ts', 'src/shadow-patcher.ts', 'src/shadow-patcher-loader.ts'],
         // Target browser for manifest transformations and web-ext
         browser,
-        // Transform manifest: inject version from package.json and Firefox compatibility
+        // Transform manifest: inject version from package.json and browser compatibility
         transformManifest: (manifest) => {
           // Sync version from package.json
           manifest.version = packageJson.version;
 
-          // Firefox compatibility: service_worker -> scripts
-          if (browser === 'firefox' && manifest.background) {
+          // Firefox and Safari compatibility: service_worker -> scripts
+          // Safari and Firefox don't support service_worker in manifest v3 background
+          if ((browser === 'firefox' || browser === 'safari') && manifest.background) {
             const bg = manifest.background as { service_worker?: string; scripts?: string[] };
             if (bg.service_worker) {
               // Create new background object with scripts instead of service_worker
