@@ -135,6 +135,18 @@ info "Fixing bundle identifiers..."
 PBXPROJ="$XCODE_DIR/$APP_NAME/$APP_NAME.xcodeproj/project.pbxproj"
 sed -i '' 's/com\.getstreamkeys\.Stream-Keys/com.getstreamkeys.StreamKeys/g' "$PBXPROJ"
 
+# Copy entitlements files to the Xcode project
+info "Copying entitlements files..."
+cp "$SCRIPT_DIR/entitlements/app.entitlements" "$XCODE_DIR/$APP_NAME/macOS (App)/App.entitlements"
+cp "$SCRIPT_DIR/entitlements/extension.entitlements" "$XCODE_DIR/$APP_NAME/macOS (Extension)/Extension.entitlements"
+
+# Configure entitlements in project.pbxproj (use INFOPLIST_FILE as anchor - always present)
+info "Configuring entitlements in Xcode project..."
+# Add CODE_SIGN_ENTITLEMENTS for macOS App target
+sed -i '' 's/INFOPLIST_FILE = "macOS (App)\/Info.plist";/CODE_SIGN_ENTITLEMENTS = "macOS (App)\/App.entitlements";\n\t\t\t\tINFOPLIST_FILE = "macOS (App)\/Info.plist";/g' "$PBXPROJ"
+# Add CODE_SIGN_ENTITLEMENTS for macOS Extension target
+sed -i '' 's/INFOPLIST_FILE = "macOS (Extension)\/Info.plist";/CODE_SIGN_ENTITLEMENTS = "macOS (Extension)\/Extension.entitlements";\n\t\t\t\tINFOPLIST_FILE = "macOS (Extension)\/Info.plist";/g' "$PBXPROJ"
+
 # Step 3: Build with Xcode
 step "Building app with Xcode ($CODE_SIGN_IDENTITY)..."
 cd "$XCODE_DIR/$APP_NAME"
