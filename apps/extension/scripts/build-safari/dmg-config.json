@@ -1,6 +1,6 @@
 {
   "title": "Stream Keys",
-  "icon": "../../src/logo/StreamKeys_128.png",
+  "icon": "../../../../assets/StreamKeys.icns",
   "icon-size": 175,
   "background": "../../../../assets/dmg-background.png",
   "window": {
