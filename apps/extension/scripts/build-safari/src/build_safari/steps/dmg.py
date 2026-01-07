@@ -98,6 +98,10 @@ class DMGCreateStep(BuildStep):
                 "format": "UDBZ",
             }
 
+            # Add hide_extensions if configured (hides .app extension in Finder)
+            if dmg_config.hide_extensions:
+                settings["hide_extensions"] = dmg_config.hide_extensions
+
             # Use dmgbuild with in-memory settings (no settings file needed)
             # Run in thread to avoid blocking the event loop (allows UI updates)
             await asyncio.to_thread(

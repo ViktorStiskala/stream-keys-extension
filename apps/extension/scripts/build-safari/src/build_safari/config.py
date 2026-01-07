@@ -31,6 +31,7 @@ class DMGConfig:
     show_status_bar: bool = False
     show_sidebar: bool = False
     show_toolbar: bool = False
+    hide_extensions: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -130,6 +131,7 @@ class AppConfig:
                 show_status_bar=dmg.get("show_status_bar", False),
                 show_sidebar=dmg.get("show_sidebar", False),
                 show_toolbar=dmg.get("show_toolbar", False),
+                hide_extensions=dmg.get("hide_extensions"),
             ),
         )
 
